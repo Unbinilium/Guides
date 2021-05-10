@@ -20,7 +20,7 @@ namespace ooi {
             this->input_size = input_size;
         }
         
-        inline int&& inferring(const cv::Mat& input) {
+        inline int inferring(const cv::Mat& input) {
             cv::resize(input, tmp, input_size);
             cv::cvtColor(tmp, tmp, cv::COLOR_BGR2GRAY);
             cv::threshold(tmp, tmp, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
@@ -41,7 +41,7 @@ namespace ooi {
                 }
             });
             
-            return std::move(max_probability_idx);
+            return max_probability_idx;
         }
         
     protected:
