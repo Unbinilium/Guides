@@ -29,8 +29,7 @@ namespace opi {
             cv::cvtColor(tmp, tmp, cv::COLOR_BGR2GRAY);
             cv::threshold(tmp, tmp, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
             
-            blob = cv::dnn::blobFromImage(tmp);
-            opencv_net.setInput(blob, input_layer_name);
+            opencv_net.setInput(cv::dnn::blobFromImage(tmp), input_layer_name);
             
             return std::move(opencv_net.forward(output_layer_name));
         }
@@ -47,6 +46,11 @@ namespace opi {
                 return;
             }
             
+#if __has_include(<opencv2/gpu/gpu.hpp>)
+            opencv_net.setPreferableBackend(cv::dnn::DNN_TARGET_CUDA);
+#else
+            opencv_net.setPreferableBackend(cv::dnn::DNN_TARGET_OPENCL);
+#endif
         }
         
         inline void layers(void) {
@@ -71,7 +75,5 @@ namespace opi {
         
         cv::Size     kernel_size;
         cv::Mat      tmp;
-        cv::Mat      blob;
     };
 }
-
