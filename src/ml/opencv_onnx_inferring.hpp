@@ -4,11 +4,14 @@
  * @class: model
  * @brief: Load ONNX model and infer input image for classified int digit
  * @author Unbinilium
- * @version 1.0.2
+ * @version 1.0.3
  * @date 2021-05-10
  */
 
 #pragma once
+
+// #define OOI_SHOW_INFERRING_BINARY
+// #define OOI_SHOW_INFERRING_RESULTS_RAW
 
 #include <iostream>
 
@@ -32,11 +35,11 @@ namespace ooi {
         /*
          @brief:  Inferring input image from loaded model, return classified int digit
          @param:  input, the image to classify (only 1 digit), const reference from cv::Mat
-         @param:  median_blur_kernel_size, define the kernel size of median blur pre-processing, default to int 5, set 0 to disable
-         @param:  probability_threshold, the min probability of considerable probability to iterate, determined by the model, mnist-8.onnx has the output array from -1e5 to 1e5, default is 0
+         @param:  median_blur_kernel_size, define the kernel size of median blur pre-processing, default to int 3, set 0 to disable
+         @param:  probability_threshold, the min probability of considerable probability to iterate, determined by the model, mnist-8.onnx has the output array from -1e4 to 1e4, default is 0
          @return: max_probability_idx, the most probable digit classified from input image in int type, -1 means all the probability is out of the threahold
          */
-        inline int inferring(const cv::Mat& input, const int median_blur_kernel_size = 5, const float probability_threshold = 0) {
+        inline int inferring(const cv::Mat& input, const int median_blur_kernel_size = 3, const float probability_threshold = 0) {
             cv::resize(input, tmp, input_size);
             if (tmp.channels() != 1) {
                 cv::cvtColor(tmp, tmp, cv::COLOR_BGR2GRAY);
@@ -46,6 +49,9 @@ namespace ooi {
             }
             cv::threshold(tmp, tmp, 0, 255, cv::THRESH_BINARY | cv::THRESH_OTSU);
             
+#ifdef OOI_SHOW_INFERRING_BINARY
+            cv::imshow("[OOI] inferring_binary", tmp);
+#endif
             opencv_net.setInput(cv::dnn::blobFromImage(tmp));
             
             float max_probability     { 0 };
@@ -65,6 +71,10 @@ namespace ooi {
                             max_probability_idx = -1;
                         }
                     }
+                
+#ifdef OOI_SHOW_INFERRING_RESULTS_RAW
+                std::cout << "[OOI] inffering results: " << i << " -> " << data << std::endl;
+#endif
             });
             
             return max_probability_idx;
