@@ -1,5 +1,17 @@
+/*
+ * @name: ringbuffer.hpp
+ * @namespace: ubn
+ * @class: ringbuffer
+ * @brief: Simple ringbuffer implementation
+ * @author Unbinilium
+ * @version 1.0.0
+ * @date 2021-05-12
+ */
+
 #pragma once
 
+#include <cstdint>
+#include <type_traits>
 #include <utility>
 
 namespace ubn {
