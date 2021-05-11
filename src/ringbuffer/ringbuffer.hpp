@@ -37,13 +37,14 @@ namespace ubn {
             return m_capacity ? false : true;
         }
         
-        inline std::optional<T> catch_tail(void) noexcept {
-            return m_position < capacity ? std::nullopt : m_data[(m_position - capacity + 1) % capacity];
+        inline T catch_tail(void) noexcept {
+            return m_position < capacity ? *m_default : m_data[(m_position - capacity + 1) % capacity];
         }
     
     private:
-        T       m_data[capacity];
-        int64_t m_position { -1 };
-        int64_t m_capacity { capacity + 1 };
+        T                m_data[capacity];
+        int64_t          m_position { -1 };
+        int64_t          m_capacity { capacity + 1 };
+        std::optional<T> m_defalut;
     };
 }
