@@ -11,6 +11,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
@@ -38,7 +39,7 @@ namespace ubn {
         
         inline T&& catch_tail(void) noexcept {
             if (m_position < capacity) {
-                T* defalut { new T };
+                std::optional<T> defalut;
                 
                 return std::move(*defalut);
             }
