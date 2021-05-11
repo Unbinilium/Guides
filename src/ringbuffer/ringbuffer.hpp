@@ -28,7 +28,7 @@ namespace ubn {
         inline bool push_head(T&& v, typename std::enable_if<!std::is_reference<T_>::value, std::nullptr_t>::type = nullptr) noexcept {
             m_data[++m_position % capacity] = std::move(v);
             if (m_capacity) { --m_capacity; }
-            return m_capacity ? false : true;;
+            return m_capacity ? false : true;
         }
         
         inline T&& catch_tail(void) noexcept {
