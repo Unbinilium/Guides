@@ -4,7 +4,7 @@
  * @class: ringbuffer
  * @brief: Simple ringbuffer implementation
  * @author Unbinilium
- * @version 1.0.1
+ * @version 1.0.2
  * @date 2021-05-12
  */
 
@@ -37,14 +37,8 @@ namespace ubn {
             return m_capacity ? false : true;
         }
         
-        inline T&& catch_tail(void) noexcept {
-            if (m_position < capacity) {
-                std::optional<T> defalut;
-                
-                return std::move(*defalut);
-            }
-            
-            return std::move(m_data[(m_position - capacity + 1) % capacity]);
+        inline std::optional<T> catch_tail(void) noexcept {
+            return m_position < capacity ? std::nullopt : m_data[(m_position - capacity + 1) % capacity];
         }
     
     private:
