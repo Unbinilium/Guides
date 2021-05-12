@@ -4,7 +4,7 @@
  * @class: ringbuffer
  * @brief: Simple ringbuffer implementation
  * @author Unbinilium
- * @version 2.0.1
+ * @version 2.0.2
  * @date 2021-05-12
  */
 
@@ -18,23 +18,21 @@ namespace ubn {
     template<typename T, const int64_t capacity>
     class ringbuffer {
     public:
-        inline ringbuffer(void) {
-            static_assert(capacity >= 1LL, "ringbuffer capacity < 1");
-        }
+        inline ringbuffer(void) { static_assert(capacity >= 1LL, "ringbuffer capacity < 1"); }
         
         inline bool push_head(const T& v) noexcept {
             m_buffer[++m_position % capacity] = v;
-            return this->is_filled();
+            return is_filled();
         }
         
         template<typename T_ = T>
         inline bool push_head(T&& v, typename std::enable_if<!std::is_reference<T_>::value, std::nullptr_t>::type = nullptr) noexcept {
-            m_buffer[++m_position % capacity] = std::move(v);
-            return this->is_filled();
+            m_buffer[++m_position % capacity] = std::forward<T>(v);
+            return is_filled();
         }
         
         inline T catch_tail(void) noexcept {
-            return m_buffer[this->is_empty() ? capacity : (m_position + (m_capacity != capacity ? m_capacity++ : capacity) - capacity + 1) % capacity];
+            return m_buffer[is_empty() ? capacity : (m_position + 1 + (m_capacity != capacity ? m_capacity++ : capacity) - capacity) % capacity];
         }
         
         inline bool is_empty(void) noexcept {
