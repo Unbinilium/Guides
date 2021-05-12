@@ -4,7 +4,7 @@
  * @class: ringbuffer
  * @brief: Simple ringbuffer implementation
  * @author Unbinilium
- * @version 2.0.0
+ * @version 2.0.1
  * @date 2021-05-12
  */
 
@@ -34,7 +34,7 @@ namespace ubn {
         }
         
         inline T catch_tail(void) noexcept {
-            return m_buffer[m_position + 1 < capacity ? capacity : (m_position + 1 + (m_capacity != capacity ? m_capacity++ : capacity) - capacity) % capacity];;
+            return m_buffer[is_empty() ? capacity : (m_position + 1 + (m_capacity != capacity ? m_capacity++ : capacity) - capacity) % capacity];
         }
         
         inline bool is_empty(void) noexcept {
