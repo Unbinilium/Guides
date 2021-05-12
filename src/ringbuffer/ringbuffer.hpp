@@ -4,7 +4,7 @@
  * @class: ringbuffer
  * @brief: Simple ringbuffer implementation
  * @author Unbinilium
- * @version 1.0.3
+ * @version 1.0.4
  * @date 2021-05-12
  */
 
@@ -32,7 +32,7 @@ namespace ubn {
         }
         
         inline T catch_tail(void) noexcept {
-            return m_buffer[m_position < capacity ? capacity : (m_position - capacity + 1) % capacity];
+            return m_buffer[m_position + 1 < capacity ? capacity : (m_position - capacity + 1) % capacity];
         }
         
     protected:
@@ -43,7 +43,7 @@ namespace ubn {
         
     private:
         T       m_buffer   [ capacity + 1 ];
-        int64_t m_capacity { capacity + 1 };
+        int64_t m_capacity { capacity };
         int64_t m_position { -1 };
         
     };
