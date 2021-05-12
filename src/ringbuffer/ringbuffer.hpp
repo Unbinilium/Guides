@@ -42,7 +42,7 @@ namespace ubn {
         }
         
     private:
-        T       m_buffer[capacity + 1];
+        T       m_buffer   [ capacity + 1 ];
         int64_t m_capacity { capacity + 1 };
         int64_t m_position { -1 };
         
