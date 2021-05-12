@@ -7,7 +7,7 @@ int main() {
     
     for(size_t i = 1; i != 10; ++i) {
         if (rb.push_head(i)) {
-            std::cout << "get tail from filled ringbuffer -> " << rb.catch_tail() << std::endl;
+            std::cout << "get tail from filled ringbuffer " << rb.catch_tail() << " while pusing -> " << i << std::endl;
         } else {
             std::cout << "waiting ringbuffer to be filled -> " << i << std::endl;
         }
