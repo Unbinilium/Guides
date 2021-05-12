@@ -32,7 +32,7 @@ namespace ubn {
         }
         
         inline T catch_tail(void) noexcept {
-            return m_buffer[m_position + 1 < capacity ? capacity : (m_position - capacity + 1) % capacity];
+            return m_buffer[m_position + 1 < capacity ? capacity : (m_position + 1 - capacity) % capacity];
         }
         
     protected:
