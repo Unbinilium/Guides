@@ -10,21 +10,20 @@
 
 #pragma once
 
-#include <cstdint>
 #include <utility>
 #include <type_traits>
 
 namespace ubn {
-    template<typename T, const int64_t capacity>
+    template<typename T, const size_t capacity>
     class ringbuffer {
     public:
         /*
          * @brief: Initialize ringbuffer class
          * @param: typename, the typename of item(s) for ringbuffer to store
-         * @param: const int64_t, the capacity of ringbuffer, overwrites the old item(s) when pushing if ringbuffer is full
+         * @param: const size_t, the capacity of ringbuffer, overwrites the old item(s) when pushing if ringbuffer is full
          */
         inline ringbuffer(void) {
-            static_assert(capacity >= 1LL, "ringbuffer capacity < 1");
+            static_assert(capacity >= 1UL, "ringbuffer capacity < 1");
         }
         
         /*
@@ -33,7 +32,7 @@ namespace ubn {
          * @return: bool, whether you're pushing on a full ringbuffer which performs the overwrite action on an old item
          */
         inline bool push_head(const T& v) noexcept {
-            m_buffer[++m_position % capacity] = v;
+            m_buffer[m_position++ % capacity] = v;
             return is_overwrite();
         }
         
@@ -44,7 +43,7 @@ namespace ubn {
          */
         template<typename T_ = T>
         inline bool push_head(T&& v, typename std::enable_if<!std::is_reference<T_>::value, std::nullptr_t>::type = nullptr) noexcept {
-            m_buffer[++m_position % capacity] = std::forward<T>(v);
+            m_buffer[m_position++ % capacity] = std::forward<T>(v);
             return is_overwrite();
         }
         
@@ -53,14 +52,14 @@ namespace ubn {
          * @return: T, the item from ringbuffer tail or the default initialed type T if ringbuffer is empty
          */
         inline T catch_tail(void) noexcept {
-            return m_buffer[is_empty() ? capacity : (m_position + (m_capacity != capacity ? m_capacity++ : capacity) - capacity + 1) % capacity];
+            return m_buffer[is_empty() ? capacity : (m_position + (m_capacity != capacity ? m_capacity++ : capacity) - capacity) % capacity];
         }
         
         /*
          * @brief:  Get current catchable item counts from ringbuffer
-         * @return: int64_t, the current catchable item counts from ringbuffer
+         * @return: size_t, the current catchable item counts from ringbuffer
          */
-        inline int64_t size(void) noexcept {
+        inline size_t size(void) noexcept {
             return capacity - m_capacity;
         }
         
@@ -85,7 +84,7 @@ namespace ubn {
          */
         inline void empty(void) noexcept {
             m_capacity = capacity;
-            m_position = -1;
+            m_position = 0;
         }
         
     protected:
@@ -94,8 +93,8 @@ namespace ubn {
         }
         
     private:
-        T       m_buffer   [ capacity + 1 ];
-        int64_t m_capacity { capacity };
-        int64_t m_position { -1 };
+        T      m_buffer   [ capacity + 1 ];
+        size_t m_capacity { capacity };
+        size_t m_position { 0 };
     };
 }
