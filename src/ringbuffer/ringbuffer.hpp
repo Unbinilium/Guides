@@ -37,14 +37,15 @@ namespace ubn {
         }
         
     protected:
-        inline bool is_filled(void) {
+        inline bool is_filled(void) noexcept {
             if (m_capacity) { --m_capacity; }
             return m_capacity ? false : true;
         }
         
     private:
         T       m_buffer[capacity + 1];
-        int64_t m_position { -1 };
         int64_t m_capacity { capacity + 1 };
+        int64_t m_position { -1 };
+        
     };
 }
