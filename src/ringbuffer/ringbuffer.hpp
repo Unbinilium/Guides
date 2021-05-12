@@ -22,13 +22,13 @@ namespace ubn {
         
         inline bool push_head(const T& v) noexcept {
             m_buffer[++m_position % capacity] = v;
-            return ringbuffer::is_filled();
+            return this->is_filled();
         }
         
         template<typename T_ = T>
         inline bool push_head(T&& v, typename std::enable_if<!std::is_reference<T_>::value, std::nullptr_t>::type = nullptr) noexcept {
             m_buffer[++m_position % capacity] = std::move(v);
-            return ringbuffer::is_filled();
+            return this->is_filled();
         }
         
         inline T catch_tail(void) noexcept {
