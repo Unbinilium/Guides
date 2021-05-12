@@ -18,7 +18,9 @@ namespace ubn {
     template<typename T, const int64_t capacity>
     class ringbuffer {
     public:
-        inline ringbuffer(void) { static_assert(capacity >= 1LL, "ringbuffer capacity < 1"); }
+        inline ringbuffer(void) {
+            static_assert(capacity >= 1LL, "ringbuffer capacity < 1");
+        }
         
         inline bool push_head(const T& v) noexcept {
             m_buffer[++m_position % capacity] = v;
