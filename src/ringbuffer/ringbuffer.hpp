@@ -34,7 +34,7 @@ namespace ubn {
         }
         
         inline T catch_tail(void) noexcept {
-            return m_buffer[is_empty() ? capacity : (m_position + 1 + (m_capacity != capacity ? m_capacity++ : capacity) - capacity) % capacity];
+            return m_buffer[this->is_empty() ? capacity : (m_position + 1 + (m_capacity != capacity ? m_capacity++ : capacity) - capacity) % capacity];
         }
         
         inline bool is_empty(void) noexcept {
