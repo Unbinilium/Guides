@@ -4,14 +4,13 @@
  * @class: ringbuffer
  * @brief: Simple ringbuffer implementation
  * @author Unbinilium
- * @version 1.0.2
+ * @version 1.0.3
  * @date 2021-05-12
  */
 
 #pragma once
 
 #include <cstdint>
-#include <stdexcept>
 #include <type_traits>
 #include <utility>
 
@@ -19,7 +18,7 @@ namespace ubn {
     template<typename T, const int64_t capacity>
     class ringbuffer {
     public:
-        inline ringbuffer(void) { if (capacity < 1) throw std::invalid_argument("ringbuffer capacity < 1"); }
+        inline ringbuffer(void) { static_assert(capacity >= 1LL, "ringbuffer capacity < 1"); }
         
         inline bool push_head(const T& v) noexcept {
             m_buffer[++m_position % capacity] = v;
