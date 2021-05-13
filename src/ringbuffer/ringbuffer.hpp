@@ -26,13 +26,25 @@ namespace ubn {
             static_assert(capacity >= 1UL, "ringbuffer capacity < 1");
         }
         
+        /* @brief: Destrutor ringbuffer */
+        inline ~ringbuffer(void) noexcept {
+            delete[] p_buffer;
+        }
+        
+        /*
+         * @brief: non-copyable and non-movable
+         * @param: const ringbuffer&
+         */
+        constexpr inline ringbuffer           (const ringbuffer&) = delete;
+        constexpr inline ringbuffer &operator=(const ringbuffer&) = delete;
+        
         /*
          * @brief:  Pushing an new item on ringbuffer head, return if it overwrites an item
          * @param:  const T&, const lvalue reference of typename T
          * @return: bool, whether you're pushing on a full ringbuffer which performs the overwrite action on an old item
          */
         constexpr inline bool push_head(const T& __v) noexcept {
-            m_buffer[m_position++ % capacity] = __v;
+            p_buffer[m_position++ % capacity] = __v;
             return is_overwrite();
         }
         
@@ -43,7 +55,7 @@ namespace ubn {
          */
         template<typename T_ = T>
         constexpr inline bool push_head(T&& __v, typename std::enable_if<!std::is_reference<T_>::value, std::nullptr_t>::type = nullptr) noexcept {
-            m_buffer[m_position++ % capacity] = std::forward<T>(__v);
+            p_buffer[m_position++ % capacity] = std::forward<T>(__v);
             return is_overwrite();
         }
         
@@ -52,7 +64,7 @@ namespace ubn {
          * @return: T, the item from ringbuffer tail or the default initialed type T if ringbuffer is empty
          */
         constexpr inline T catch_tail(void) noexcept {
-            return m_buffer[is_empty() ? capacity : (m_position + (m_capacity != capacity ? m_capacity++ : capacity) - capacity) % capacity];
+            return p_buffer[is_empty() ? capacity : (m_position + (m_capacity != capacity ? m_capacity++ : capacity) - capacity) % capacity];
         }
         
         /*
@@ -93,7 +105,7 @@ namespace ubn {
         }
         
     private:
-        T           m_buffer   [ capacity + 1 ];
+        T*          p_buffer   { new T[capacity + 1] };
         std::size_t m_capacity { capacity };
         std::size_t m_position { 0 };
     };
