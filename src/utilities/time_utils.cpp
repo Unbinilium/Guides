@@ -91,6 +91,10 @@ namespace ubn {
                 : false;
         }
             
+        inline bool erase(const std::string& _tag_name) {
+            return eraseTag(_tag_name) || eraseDuration(_tag_name);
+        }
+            
         inline void clear() {
             time_point_map_.clear();
             duration_map_.clear();
