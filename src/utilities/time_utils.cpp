@@ -73,8 +73,6 @@ namespace ubn {
             time_point_map_.clear();
             duration_map_.clear();
         }
-    
-    protected:
         
     private:
         std::map<std::string, std::chrono::time_point<T>> time_point_map_;
