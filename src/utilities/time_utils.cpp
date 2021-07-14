@@ -1,8 +1,8 @@
 #include <map>
 #include <chrono>
 #include <thread>
+#include <string>
 #include <utility>
-
 #include <iostream>
 
 namespace ubn {
@@ -31,17 +31,23 @@ namespace ubn {
                     std::pair(_tag_name, T::now())
                 );
             }
+            updateInfo(_tag_name);
         }
             
-        inline void displayInfo(const std::string& _tag_name) {
+        inline void printInfo(const std::string& _tag_name) {
             std::cout << "[time_utils] Info '" << _tag_name << "' -> last set at: ";
             if (time_point_map_.contains(_tag_name)) {
                 std::cout << time_point_map_[_tag_name].time_since_epoch().count() << ", ";
             } else {
                 std::cout << "none, ";
             }
-            auto duration { getDuration(_tag_name) };
-            std::cout << "duration history: " << duration.count() << ", frequency: " <<  1.f / std::chrono::duration<float, std::ratio<1>>(duration).count();
+            const auto duration { getDuration(_tag_name) };
+            std::cout << "duration (cur/min/max/avg): "
+                << duration.count() << "/"
+                << info_map_[_tag_name]["min_duration"] << "/"
+                << info_map_[_tag_name]["max_duration"] << "/"
+                << info_map_[_tag_name]["avg_duration"] << ", frequency: "
+                << 1.f / std::chrono::duration<float, std::ratio<1>>(duration).count();
         }
         
         inline auto getTag(const std::string& _tag_name) {
@@ -64,18 +70,49 @@ namespace ubn {
             
         inline bool eraseDuration(const std::string& _tag_name) {
             return duration_map_.contains(_tag_name)
-                ? [&]() -> bool { duration_map_.erase(_tag_name); return true; }
+                ? [&]() -> bool { 
+                    duration_map_.erase(_tag_name);
+                    info_map_.erase(_tag_name);
+                    return true; }
                 : false;
         }
             
         inline void clear() {
             time_point_map_.clear();
             duration_map_.clear();
+            info_map_.clear();
+        }
+    
+    protected:
+        inline void updateInfo(const std::string& _tag_name) {
+            const auto duration_count { getDuration(_tag_name).count() };
+            std::map<std::string, double> info;
+            if (info_map_.contains(_tag_name)) {
+                info = info_map_[_tag_name];
+                info["min_duration"] = info["min_duration"] < duration_count
+                    ? info["min_duration"]
+                    : duration_count;
+                info["max_duration"] = info["max_duration"] > duration_count
+                    ? info["max_duration"]
+                    : duration_count;
+                info["avg_duration"] = info["avg_duration"] != 0.f
+                    ? (info["avg_duration"] + duration_count) / 2
+                    : duration_count;
+            } else {
+                for (auto& info_name : { "min_duration", "max_duration", "avg_duration" }) {
+                    info.emplace(std::pair(info_name, duration_count));
+                }
+            }
+            info_map_.insert_or_assign(
+                _tag_name,
+                info
+            );
         }
         
     private:
         std::map<std::string, std::chrono::time_point<T>> time_point_map_;
         std::map<std::string, P> duration_map_;
+        std::map<std::string, std::map<std::string, double>> info_map_;
     };
 }
 
@@ -91,5 +128,5 @@ int main() {
     doSomeThing();
     t_u.setTag("Clock 1");
     
-    t_u.displayInfo("Clock 1");
+    t_u.printInfo("Clock 1");
 }
