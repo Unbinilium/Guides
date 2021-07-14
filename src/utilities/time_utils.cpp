@@ -118,7 +118,7 @@ namespace ubn {
                     ? (info["avg_duration"] + duration_count) / 2
                     : duration_count;
             } else {
-                for (auto& info_name : { "min_duration", "max_duration", "avg_duration" }) {
+                for (const auto& info_name : { "min_duration", "max_duration", "avg_duration" }) {
                     info.emplace(std::pair(info_name, duration_count));
                 }
             }
