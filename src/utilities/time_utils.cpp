@@ -1,4 +1,5 @@
 #include <map>
+#include <ctime>
 #include <chrono>
 #include <thread>
 #include <string>
@@ -34,6 +35,7 @@ namespace ubn {
                         T::now() - time_point_map_[_tag_name]
                     )
                 );
+                time_point_map_[_tag_name] = T::now();
             } else {
                 time_point_map_.emplace(
                     std::pair(_tag_name, T::now())
@@ -101,9 +103,10 @@ namespace ubn {
             std::map<std::string, double> info;
             if (info_map_.contains(_tag_name)) {
                 info = info_map_[_tag_name];
-                info["min_duration"] = info["min_duration"] < duration_count
-                    ? info["min_duration"]
-                    : duration_count;
+                info["min_duration"] = info["avg_duration"] != 0.f && 
+                    info["min_duration"] < duration_count
+                        ? info["min_duration"]
+                        : duration_count;
                 info["max_duration"] = info["max_duration"] > duration_count
                     ? info["max_duration"]
                     : duration_count;
@@ -146,6 +149,12 @@ int main() {
     t_u.setTag("Clock 1");
     doSomeThing();
     t_u.setTag("Clock 1");
+    t_u.setTag("Clock 2");
+    doSomeThing();
+    doSomeThing();
+    t_u.setTag("Clock 2");
+    doSomeThing();
+    t_u.setTag("Clock 2");
     
     t_u.printAllInfo();
 }
