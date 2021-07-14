@@ -11,7 +11,7 @@ namespace ubn {
     public:
         time_utils() = default;
             
-        time_utils(
+        explicit time_utils(
             const std::map<std::string, std::chrono::time_point<T>> _time_point_map,
             const std::map<std::string, P> _duration_map
         ) : time_point_map_(_time_point_map), duration_map_(_duration_map) {}
