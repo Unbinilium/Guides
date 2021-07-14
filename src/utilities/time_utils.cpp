@@ -31,7 +31,6 @@ namespace ubn {
                     std::pair(_tag_name, T::now())
                 );
             }
-            
         }
             
         inline void displayInfo(const std::string& _tag_name) {
