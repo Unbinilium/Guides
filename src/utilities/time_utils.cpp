@@ -18,6 +18,14 @@ namespace ubn {
             
         ~time_utils() { clear(); };
         
+        inline auto operator-(const time_utils& _time_utils) {
+            return getTag() - _time_utils.getTag();
+        }
+            
+        inline auto operator+(const time_utils& _time_utils) {
+            return getTag() + _time_utils.getTag();
+        }
+        
         inline void setTag(const std::string& _tag_name) {
             if (time_point_map_.contains(_tag_name)) {
                 duration_map_.insert_or_assign(
@@ -47,7 +55,7 @@ namespace ubn {
                 << info_map_[_tag_name]["min_duration"] << "/"
                 << info_map_[_tag_name]["max_duration"] << "/"
                 << info_map_[_tag_name]["avg_duration"] << ", frequency: "
-                << 1.f / std::chrono::duration<float, std::ratio<1>>(duration).count();
+                << 1.f / std::chrono::duration<float, std::ratio<1>>(duration).count() << std::endl;
         }
         
         inline void printAllInfo() {
@@ -113,7 +121,7 @@ namespace ubn {
             );
         }
             
-        void printAllInfo(const std::map<std::string, P>& _duration_map)
+        inline void printAllInfo(const std::map<std::string, P>& _duration_map)
         {
             for (const auto& [key, value] : _duration_map) {
                 printInfo(key);
@@ -140,5 +148,4 @@ int main() {
     t_u.setTag("Clock 1");
     
     t_u.printAllInfo();
-    
 }
