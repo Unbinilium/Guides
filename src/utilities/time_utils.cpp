@@ -50,6 +50,10 @@ namespace ubn {
                 << 1.f / std::chrono::duration<float, std::ratio<1>>(duration).count();
         }
         
+        inline void printAllInfo() {
+            printAllInfo(duration_map_);
+        }
+        
         inline auto getTag(const std::string& _tag_name) {
             return time_point_map_.contains(_tag_name)
                 ? time_point_map_[_tag_name]
@@ -108,6 +112,13 @@ namespace ubn {
                 info
             );
         }
+            
+        void printAllInfo(const std::map<std::string, P>& _duration_map)
+        {
+            for (const auto& [key, value] : _duration_map) {
+                printInfo(key);
+            }
+        }
         
     private:
         std::map<std::string, std::chrono::time_point<T>> time_point_map_;
@@ -128,5 +139,6 @@ int main() {
     doSomeThing();
     t_u.setTag("Clock 1");
     
-    t_u.printInfo("Clock 1");
+    t_u.printAllInfo();
+    
 }
