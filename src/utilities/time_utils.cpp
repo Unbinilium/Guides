@@ -1,5 +1,5 @@
 #include <string>
-#include <vector>
+#include <deque>
 #include <map>
 #include <unordered_map>
 #include <chrono>
@@ -10,12 +10,13 @@ namespace ubn {
     template <typename T = std::chrono::high_resolution_clock, typename P = std::chrono::milliseconds>
     class time_utils {
     public:
-        time_utils() = default;
+        explicit time_utils(const std::size_t _info_history_size = 5) : info_history_size_(_info_history_size) {}
             
         explicit time_utils(
-            const std::map<std::string, std::chrono::time_point<T>> _time_point_map,
-            const std::map<std::string, P> _duration_map
-        ) : time_point_map_(_time_point_map), duration_map_(_duration_map) {}
+            const std::map<std::string, std::chrono::time_point<T>>&& _time_point_map,
+            const std::map<std::string, P>&& _duration_map,
+            const std::size_t _info_history_size
+        ) : time_point_map_(_time_point_map), duration_map_(_duration_map), info_history_size_(_info_history_size) {}
             
         ~time_utils() { clear(); };
         
@@ -98,7 +99,7 @@ namespace ubn {
         inline auto getInfoHistort(const std::string& _tag_name) {
             return info_history_map_.contains(_tag_name)
                 ? info_history_map_[_tag_name]
-                : std::vector<std::unordered_map<std::string, double>>();
+                : std::deque<std::unordered_map<std::string, double>>();
         }
             
         inline void printInfoHistory(const std::string& _tag_name) {
@@ -131,6 +132,8 @@ namespace ubn {
             std::unordered_map<std::string, double> info;
             if (info_history_map_.contains(_tag_name)) {
                 info = info_history_map_[_tag_name][info_history_map_[_tag_name].size() - 1];
+                info["id"] += 1.f;
+                info["time_point_at"] = time_point_map_[_tag_name].time_since_epoch().count();
                 info["min_duration"] = info["avg_duration"] != 0.f && info["min_duration"] < duration_count
                     ? info["min_duration"]
                     : duration_count;
@@ -141,26 +144,25 @@ namespace ubn {
                     ? (info["avg_duration"] + duration_count) / 2.f
                     : duration_count;
             } else {
+                for (const auto& info_name : { "id", "time_point_at" }) {
+                    info.emplace(std::pair(info_name, 0.f));
+                }
                 for (const auto& info_name : { "min_duration", "max_duration", "avg_duration" }) {
                     info.emplace(std::pair(info_name, duration_count));
                 }
             }
-            info.insert_or_assign(
-                "time_point_at",
-                time_point_map_.contains(_tag_name)
-                    ? time_point_map_[_tag_name].time_since_epoch().count()
-                    : 0.f
-            );
             info.insert_or_assign(
                 "cur_duration",
                 duration_count
             );
             info.insert_or_assign("frequency", 1.f / std::chrono::duration<double, std::ratio<1>>(duration).count());
             if (info_history_map_.contains(_tag_name)) {
+                if (info_history_map_[_tag_name].size() >= info_history_size_) {
+                    info_history_map_[_tag_name].pop_front();
+                }
                 info_history_map_[_tag_name].emplace_back(info);
-                
             } else {
-                std::vector<std::unordered_map<std::string, double>> info_history { info };
+                std::deque<std::unordered_map<std::string, double>> info_history { info };
                 info_history_map_.emplace(std::pair(_tag_name, info_history));
             }
         }
@@ -173,7 +175,7 @@ namespace ubn {
             auto info_history { info_history_map_[_tag_name][_i] };
             std::cout << "[time_utils] Info '"
                 << _tag_name << "' -> "
-                << _i << " set at: "
+                << std::size_t(info_history["id"]) << " set at: "
                 << std::size_t(info_history["time_point_at"]) << " duration (cur/min/max/avg): "
                 << info_history["cur_duration"] << "/"
                 << info_history["min_duration"] << "/"
@@ -199,7 +201,9 @@ namespace ubn {
     private:
         std::map<std::string, std::chrono::time_point<T>> time_point_map_;
         std::map<std::string, P> duration_map_;
-        std::map<std::string, std::vector<std::unordered_map<std::string, double>>> info_history_map_;
+        std::map<std::string, std::deque<std::unordered_map<std::string, double>>> info_history_map_;
+        
+        std::size_t info_history_size_ { 5 };
     };
 }
 
@@ -218,6 +222,12 @@ int main() {
     t_u.setTag("Clock 1");
     t_u.setTag("Clock 2");
     doSomeThing();
+    doSomeThing();
+    t_u.setTag("Clock 2");
+    doSomeThing();
+    t_u.setTag("Clock 2");
+    doSomeThing();
+    t_u.setTag("Clock 2");
     doSomeThing();
     t_u.setTag("Clock 2");
     doSomeThing();
