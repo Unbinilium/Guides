@@ -96,7 +96,7 @@ namespace ubn {
             printAllInfo(duration_map_);
         }
             
-        inline auto getInfoHistort(const std::string& _tag_name) {
+        inline auto getInfoHistory(const std::string& _tag_name) {
             return info_history_map_.contains(_tag_name)
                 ? info_history_map_[_tag_name]
                 : std::deque<std::unordered_map<std::string, double>>();
