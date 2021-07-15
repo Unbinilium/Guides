@@ -3,6 +3,7 @@
 #include <chrono>
 #include <thread>
 #include <string>
+#include <vector>
 #include <utility>
 #include <iostream>
 
@@ -43,31 +44,15 @@ namespace ubn {
             }
             updateInfo(_tag_name);
         }
-            
-        inline void printInfo(const std::string& _tag_name) {
-            std::cout << "[time_utils] Info '" << _tag_name << "' -> last set at: ";
-            if (time_point_map_.contains(_tag_name)) {
-                std::cout << time_point_map_[_tag_name].time_since_epoch().count() << ", ";
-            } else {
-                std::cout << "none, ";
-            }
-            const auto duration { getDuration(_tag_name) };
-            std::cout << "duration (cur/min/max/avg): "
-                << duration.count() << "/"
-                << info_map_[_tag_name]["min_duration"] << "/"
-                << info_map_[_tag_name]["max_duration"] << "/"
-                << info_map_[_tag_name]["avg_duration"] << ", frequency: "
-                << 1.f / std::chrono::duration<float, std::ratio<1>>(duration).count() << std::endl;
-        }
-        
-        inline void printAllInfo() {
-            printAllInfo(duration_map_);
-        }
         
         inline auto getTag(const std::string& _tag_name) {
             return time_point_map_.contains(_tag_name)
                 ? time_point_map_[_tag_name]
                 : T::now();
+        }
+            
+        inline auto getAllTag() {
+            return time_point_map_;
         }
             
         inline bool eraseTag(const std::string& _tag_name) {
@@ -82,6 +67,10 @@ namespace ubn {
                 : P();
         }
             
+        inline auto getAllDuration() {
+            return duration_map_;
+        }
+            
         inline bool eraseDuration(const std::string& _tag_name) {
             return duration_map_.contains(_tag_name)
                 ? [&]() -> bool { 
@@ -89,6 +78,32 @@ namespace ubn {
                     info_map_.erase(_tag_name);
                     return true; }
                 : false;
+        }
+
+        inline auto getInfo(const std::string& _tag_name) {
+            return duration_map_.contains(_tag_name)
+                ? info_map_[_tag_name]
+                : std::map<std::string, double>();
+        }
+        
+        inline void printInfo(const std::string& _tag_name) {
+            std::cout << "[time_utils] Info '" << _tag_name << "' -> last set at: ";
+            if (time_point_map_.contains(_tag_name)) {
+                std::cout << time_point_map_[_tag_name].time_since_epoch().count() << ", ";
+            } else {
+                std::cout << "none, ";
+            }
+            const auto duration { getDuration(_tag_name) };
+            std::cout << "duration (cur/min/max/avg): "
+            << duration.count() << "/"
+            << info_map_[_tag_name]["min_duration"] << "/"
+            << info_map_[_tag_name]["max_duration"] << "/"
+            << info_map_[_tag_name]["avg_duration"] << ", frequency: "
+            << info_map_[_tag_name]["frequency"] << std::endl;
+        }
+        
+        inline void printAllInfo() {
+            printAllInfo(duration_map_);
         }
             
         inline bool erase(const std::string& _tag_name) {
@@ -102,8 +117,9 @@ namespace ubn {
         }
     
     protected:
-        inline void updateInfo(const std::string& _tag_name) {
-            const auto duration_count { getDuration(_tag_name).count() };
+        inline void updateInfo(const std::string& _tag_name) {\
+            const auto duration { getDuration(_tag_name) };
+            const auto duration_count { duration.count() };
             std::map<std::string, double> info;
             if (info_map_.contains(_tag_name)) {
                 info = info_map_[_tag_name];
@@ -122,6 +138,7 @@ namespace ubn {
                     info.emplace(std::pair(info_name, duration_count));
                 }
             }
+            info.insert_or_assign("frequency", 1.f / std::chrono::duration<double, std::ratio<1>>(duration).count());
             info_map_.insert_or_assign(
                 _tag_name,
                 info
