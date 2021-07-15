@@ -38,9 +38,7 @@ namespace ubn {
                 );
                 time_point_map_[_tag_name] = T::now();
             } else {
-                time_point_map_.emplace(
-                    std::pair(_tag_name, T::now())
-                );
+                time_point_map_.emplace(_tag_name, T::now());
             }
             updateInfo(_tag_name);
         }
@@ -145,25 +143,22 @@ namespace ubn {
                     : duration_count;
             } else {
                 for (const auto& info_name : { "id", "time_point_at" }) {
-                    info.emplace(std::pair(info_name, 0.f));
+                    info.emplace(info_name, 0.f);
                 }
                 for (const auto& info_name : { "min_duration", "max_duration", "avg_duration" }) {
-                    info.emplace(std::pair(info_name, duration_count));
+                    info.emplace(info_name, duration_count);
                 }
             }
-            info.insert_or_assign(
-                "cur_duration",
-                duration_count
-            );
+            info.insert_or_assign("cur_duration", duration_count);
             info.insert_or_assign("frequency", 1.f / std::chrono::duration<double, std::ratio<1>>(duration).count());
             if (info_history_map_.contains(_tag_name)) {
                 if (info_history_map_[_tag_name].size() >= info_history_size_) {
                     info_history_map_[_tag_name].pop_front();
                 }
-                info_history_map_[_tag_name].emplace_back(info);
+                info_history_map_[_tag_name].push_back(std::move(info));
             } else {
                 std::deque<std::unordered_map<std::string, double>> info_history { info };
-                info_history_map_.emplace(std::pair(_tag_name, info_history));
+                info_history_map_.emplace(_tag_name, std::move(info_history));
             }
         }
             
@@ -184,15 +179,13 @@ namespace ubn {
                 << info_history["frequency"] << std::endl;
         }
             
-        inline void printAllInfo(const std::map<std::string, P>& _duration_map)
-        {
+        inline void printAllInfo(const std::map<std::string, P>& _duration_map) {
             for (const auto& [key, _] : _duration_map) {
                 printInfo(key);
             }
         }
             
-        inline void printAllInfoHistory(const std::map<std::string, P>& _duration_map)
-        {
+        inline void printAllInfoHistory(const std::map<std::string, P>& _duration_map) {
             for (const auto& [key, _] : _duration_map) {
                 printInfoHistory(key);
             }
@@ -202,7 +195,6 @@ namespace ubn {
         std::map<std::string, std::chrono::time_point<T>> time_point_map_;
         std::map<std::string, P> duration_map_;
         std::map<std::string, std::deque<std::unordered_map<std::string, double>>> info_history_map_;
-        
         std::size_t info_history_size_ { 5 };
     };
 }
