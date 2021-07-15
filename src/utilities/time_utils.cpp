@@ -1,11 +1,16 @@
 #include <map>
+#include <unordered_map>
+
 #include <ctime>
 #include <chrono>
-#include <thread>
+
 #include <string>
 #include <vector>
 #include <utility>
+
 #include <iostream>
+
+#include <thread>
 
 namespace ubn {
     template <typename T = std::chrono::high_resolution_clock, typename P = std::chrono::milliseconds>
@@ -87,15 +92,10 @@ namespace ubn {
         }
         
         inline void printInfo(const std::string& _tag_name) {
-            std::cout << "[time_utils] Info '" << _tag_name << "' -> last set at: ";
-            if (time_point_map_.contains(_tag_name)) {
-                std::cout << time_point_map_[_tag_name].time_since_epoch().count() << ", ";
-            } else {
-                std::cout << "none, ";
-            }
-            const auto duration { getDuration(_tag_name) };
-            std::cout << "duration (cur/min/max/avg): "
-            << duration.count() << "/"
+            std::cout << "[time_utils] Info '"
+            << _tag_name << "' -> last set at: "
+            << std::size_t(info_map_[_tag_name]["time_point_at"]) << " duration (cur/min/max/avg): "
+            << info_map_[_tag_name]["cur_duration"] << "/"
             << info_map_[_tag_name]["min_duration"] << "/"
             << info_map_[_tag_name]["max_duration"] << "/"
             << info_map_[_tag_name]["avg_duration"] << ", frequency: "
@@ -117,10 +117,10 @@ namespace ubn {
         }
     
     protected:
-        inline void updateInfo(const std::string& _tag_name) {\
+        inline void updateInfo(const std::string& _tag_name) {
             const auto duration { getDuration(_tag_name) };
             const auto duration_count { duration.count() };
-            std::map<std::string, double> info;
+            std::unordered_map<std::string, double> info;
             if (info_map_.contains(_tag_name)) {
                 info = info_map_[_tag_name];
                 info["min_duration"] = info["avg_duration"] != 0.f && 
@@ -138,6 +138,16 @@ namespace ubn {
                     info.emplace(std::pair(info_name, duration_count));
                 }
             }
+            info.insert_or_assign(
+                "time_point_at",
+                time_point_map_.contains(_tag_name)
+                ? time_point_map_[_tag_name].time_since_epoch().count()
+                : 0.f
+            );
+            info.insert_or_assign(
+                "cur_duration",
+                duration_count
+            );
             info.insert_or_assign("frequency", 1.f / std::chrono::duration<double, std::ratio<1>>(duration).count());
             info_map_.insert_or_assign(
                 _tag_name,
@@ -155,7 +165,7 @@ namespace ubn {
     private:
         std::map<std::string, std::chrono::time_point<T>> time_point_map_;
         std::map<std::string, P> duration_map_;
-        std::map<std::string, std::map<std::string, double>> info_map_;
+        std::map<std::string, std::unordered_map<std::string, double>> info_map_;
     };
 }
 
