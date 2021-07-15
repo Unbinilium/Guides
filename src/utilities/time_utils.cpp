@@ -1,16 +1,10 @@
-#include <map>
-#include <unordered_map>
-
-#include <ctime>
-#include <chrono>
-
 #include <string>
 #include <vector>
+#include <map>
+#include <unordered_map>
+#include <chrono>
 #include <utility>
-
 #include <iostream>
-
-#include <thread>
 
 namespace ubn {
     template <typename T = std::chrono::high_resolution_clock, typename P = std::chrono::milliseconds>
@@ -164,6 +158,7 @@ namespace ubn {
             info.insert_or_assign("frequency", 1.f / std::chrono::duration<double, std::ratio<1>>(duration).count());
             if (info_history_map_.contains(_tag_name)) {
                 info_history_map_[_tag_name].emplace_back(info);
+                
             } else {
                 std::vector<std::unordered_map<std::string, double>> info_history { info };
                 info_history_map_.emplace(std::pair(_tag_name, info_history));
@@ -207,6 +202,8 @@ namespace ubn {
         std::map<std::string, std::vector<std::unordered_map<std::string, double>>> info_history_map_;
     };
 }
+
+#include <thread>
 
 void doSomeThing() {
     using namespace std::chrono_literals;
