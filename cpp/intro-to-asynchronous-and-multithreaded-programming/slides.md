@@ -11,7 +11,7 @@ drawings:
 title: Asynchornous and multi-threading programming
 ---
 
-# Asynchornous and multi-threading programming
+# Asynchornous and multithreaded programming
 
 Intro to asynchornous and multithreaded programming using C++
 
