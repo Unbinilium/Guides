@@ -8,7 +8,7 @@ info: Intro to asynchornous and multithreaded programming
 drawings:
   persist: false
   syncAll: true
-title: Asynchornous and multi-threading programming
+title: Asynchornous and multithreaded programming
 ---
 
 # Asynchornous and multithreaded programming
@@ -693,3 +693,627 @@ auto sum = std::reduce(std::execution::par_unseq, vec.begin(), vec.end(), int{0}
 Although the stand library provides many parallel algorithms, not all of them are suitable for our use case, so use them carefully.
 
 *Note: Currently the `std::execution` requires Intel TBB library*
+
+---
+
+# Thread synchronization
+
+Let's talk about the basic thread synchronizations
+
+```cpp
+class Counter {
+public:
+    Counter() = default;
+    auto get() const { return m_value; }
+    void increment() { ++m_value; }
+private:
+    unsigned int m_value { 0 };
+};
+
+{
+    Counter counter;
+    auto f = [&] { for (const auto& i : std::views::iota(0, 1e6)) { counter.increment(); } };
+    auto thread1 = std::thread(f);
+    auto thread2 = std::thread(f);
+    thread1.join();
+    thread2.join();
+    std::printf("counter -> %d\n", counter.get());
+}
+```
+
+Consider what happens when we run the above code.
+
+---
+title: Thread synchronization
+---
+
+```cpp {1-8,11}
+class Counter {
+public:
+    Counter() = default;
+    auto get() const { return m_value; }
+    void increment() { ++m_value; }
+private:
+    unsigned int m_value { 0 };
+};
+
+{
+    Counter counter;
+    auto f = [&] { for (const auto& i : std::views::iota(0, 1e6)) { counter.increment(); } };
+    auto thread1 = std::thread(f);
+    auto thread2 = std::thread(f);
+    thread1.join();
+    thread2.join();
+    std::printf("counter -> %d\n", counter.get());
+}
+```
+
+We created a `Counter` abstraction class and counter object, the class has two methods: `get()` and `increment()`.
+
+---
+title: Thread synchronization
+---
+
+```cpp {12-14}
+class Counter {
+public:
+    Counter() = default;
+    auto get() const { return m_value; }
+    void increment() { ++m_value; }
+private:
+    unsigned int m_value { 0 };
+};
+
+{
+    Counter counter;
+    auto f = [&] { for (const auto& i : std::views::iota(0, 1e6)) { counter.increment(); } };
+    auto thread1 = std::thread(f);
+    auto thread2 = std::thread(f);
+    thread1.join();
+    thread2.join();
+    std::printf("counter -> %d\n", counter.get());
+}
+```
+
+Then two threads are created, and each thread is running in a loop, each calling `increment()` method for $1*10^6$ times.
+
+---
+title: Thread synchronization
+---
+
+```cpp {15--17}
+class Counter {
+public:
+    Counter() = default;
+    auto get() const { return m_value; }
+    void increment() { ++m_value; }
+private:
+    unsigned int m_value { 0 };
+};
+
+{
+    Counter counter;
+    auto f = [&] { for (const auto& i : std::views::iota(0, 1e6)) { counter.increment(); } };
+    auto thread1 = std::thread(f);
+    auto thread2 = std::thread(f);
+    thread1.join();
+    thread2.join();
+    std::printf("counter -> %d\n", counter.get());
+}
+```
+
+Last we print the counter after two threads are joined.
+
+---
+title: The problem
+---
+
+```cpp
+{
+    Counter counter;
+    auto f = [&] { for (const auto& i : std::views::iota(0, 1e6)) { counter.increment(); } };
+    auto thread1 = std::thread(f);
+    auto thread2 = std::thread(f);
+    thread1.join();
+    thread2.join();
+    std::printf("counter -> %d\n", counter.get());
+}
+```
+
+What will the program print?
+
+- `counter -> N`, N < $2*1*10^6$
+
+- `counter -> N`, N = $2*1*10^6$
+
+---
+
+# Why this happens?
+
+Thread safety is not guaranteed
+
+The thread safety is not guaranteed because the self-incrementing counter is not atomic, which means that the counter's incremention by multiple threads could be happen at the same time.
+
+Atomic increment means that all the instruction operations cannot be interrupted, because the self-incrementing operation may have many instructions after compile. If the interruption happens and the `m_value` changed by other threads, this will cause error.
+
+```asm
+Counter::increment():
+        push    rbp
+        mov     rbp, rsp
+        mov     QWORD PTR [rbp-8], rdi
+        mov     rax, QWORD PTR [rbp-8]
+        mov     eax, DWORD PTR [rax]
+        lea     edx, [rax+1]
+        mov     rax, QWORD PTR [rbp-8]
+        mov     DWORD PTR [rax], edx
+        nop
+        pop     rbp
+        ret
+```
+
+---
+
+# The `std::mutex`
+
+The basic thread synchronization method `std::mutex`
+
+The mutex class is a synchronization primitive that can be used to protect shared data from being simultaneously accessed by multiple threads.
+
+| Method                 | Description                                                  |
+| ---------------------- | ------------------------------------------------------------ |
+| `std::mutex::lock`     | locks the mutex, blocks if the mutex is not available        |
+| `std::mutex::try_lock` | tries to lock the mutex, returns if the mutex is not available |
+| `std::mutex::unlock`   | unlocks the mutex                                            |
+
+---
+title: The `std::mutex`
+---
+
+```cpp {6-8,11}
+class Counter {
+public:
+​    Counter() = default;
+​    auto get() const { return m_value; }
+​    void increment() {
+​        m_mutex.lock();
+​        ++m_value;
+​        m_mutex.unlock();
+​    }
+private:
+​    mutable std::mutex m_mutex;
+​    unsigned int m_value { 0 };
+
+};
+```
+
+We defined a mutex `m` to protect the `Counter`, the mutex is locked while doing the non-const operation `increment()` and unlocked after the operation is done.
+
+But there's still a problem, through the `get()` method is const, but we're not supposed to get the value while the `m_value` is incrementing, if we also have a lock here, how to unlock the mutex after `return`?
+
+---
+title: The `std::lock_guard`
+---
+
+```cpp {4-11}
+class Counter {
+public:
+​    Counter() = default;
+​    auto get() const {
+        std::lock_guard lk(m_mutex);
+        return m_value;
+    }
+​    void increment() {
+        std::lock_guard lk(m_mutex);
+​        ++m_value;
+​    }
+private:
+​    mutable std::mutex m_mutex;
+​    unsigned int m_value { 0 };
+};
+```
+
+Or we can simply use the `std::lock_guard` which is a RAII class that locks the mutex for the duration of the guard's lifetime.
+
+---
+title: The `std::shared_mutex`
+---
+
+```cpp {5,9,13}
+class Counter {
+public:
+    Counter() = default;
+    auto get() const {
+        std::shared_lock lk(m_mutex);
+        return m_value;
+    }
+​    void increment() {
+​        std::unique_lock lk(m_mutex);
+​        ++m_value;
+​    }
+private:
+​    mutable std::shared_mutex m_mutex;
+​    unsigned int m_value { 0 };
+};
+```
+
+Consider that the const `get()` method is really need to be always atomic? Obviously not, it only needs to be atomic when the `m_value` is incrementing, so we can use `std::shared_mutex` as a more efficient way to synchronize.
+
+With a `std::shared_lock`, multiple threads can get the counter's value at the same time, similarly `std::unique_lock` can suppose that there is only one thread/writer can increment/write the counter's value at the same time.
+
+---
+
+# The thread synchronize library
+
+Here we list some basic thread synchronization methods, not include in the examples
+
+| Methods                   | Description                                                  |
+| ------------------------- | ------------------------------------------------------------ |
+| `std::timed_mutex`        | a mutex offers exclusive, non-recursive ownership semantics, provides the ability to attempt to claim ownership with a timeout |
+| `std::scoped_lock`        | a deadlock-avoiding RAII wrapper for multiple mutexes        |
+| `std::condition_variable` | a synchronization primitive that can be used to block a thread, or multiple threads at the same time, until another thread both modifies a shared variable |
+| `std::counting_semaphore` | a lightweight synchronization primitive that can control access to a shared resource |
+| `std::latch`              | a single-use counter blocker on the latch until the counter is decremented to zero |
+| `std::barrier`            | a reusable counter blocker on the latch until the counter is decremented to zero |
+
+---
+
+# The `std::atomic`
+
+`std::atomic` template defines an atomic type with atomic operations
+
+Say goodbye to synchronization, we can use `std::atomic` to implement the counter:
+
+```cpp
+class Counter {
+public:
+    Counter() = default;
+    auto get() const { return m_value.load(); }
+    void increment() { ++m_value; }
+private:
+    std::atomic<unsigned int> m_value { 0 };
+};
+```
+
+For this scenario, we can use `std::atomic` to implement the counter, but it not means all the types is atomic, it only supports a few types and you can check the atomicability of a type by `std::atomic<T>::is_always_lock_free()`.
+
+---
+
+# The `std::atomic` is not only atomic
+
+`std::atomic` is more powerful than you think
+
+```cpp
+class spin_mutex {
+public:
+    void lock() noexcept const {
+        while (m_flag.test_and_set(std::memory_order::acquire)) {
+            m_flag.wait(true, std::memory_order::relaxed);
+        }
+    }
+    void unlock() noexcept const {
+        m_flag.clear(std::memory_order::release);
+        m_flag.notify_one();
+    }
+private:
+    alignas(std::hardware_constructive_interference_size) mutable std::atomic_flag m_flag;
+};
+```
+
+Although `std::atomic` is only atomic, it can be used to implement the spin lock, compared with the `std::mutex`, atomic uses cpu instructions directly instead of OS level call, which is more efficient and super fast.
+
+---
+title: The `spin_mutex`
+---
+
+```cpp {13}
+class spin_mutex {
+public:
+    void lock() noexcept const {
+        while (m_flag.test_and_set(std::memory_order::acquire)) {
+            m_flag.wait(true, std::memory_order::relaxed);
+        }
+    }
+    void unlock() noexcept const {
+        m_flag.clear(std::memory_order::release);
+        m_flag.notify_one();
+    }
+private:
+    alignas(std::hardware_destructive_interference_size) mutable std::atomic_flag m_flag;
+};
+```
+
+We declare `m_flag` as a `std::atomic_flag`, it is an atomic boolean type which uses whole single cache line, constructed by `alignas` with minimum offset `std::hardware_destructive_interference_size` to avoid false sharing.
+
+---
+title: The `spin_mutex`
+---
+
+```cpp {3-4,6-7}
+class spin_mutex {
+public:
+    void lock() noexcept const {
+        while (m_flag.test_and_set(std::memory_order::acquire)) {
+            m_flag.wait(true, std::memory_order::relaxed);
+        }
+    }
+    void unlock() noexcept const {
+        m_flag.clear(std::memory_order::release);
+        m_flag.notify_one();
+    }
+private:
+    alignas(std::hardware_destructive_interference_size) mutable std::atomic_flag m_flag;
+};
+```
+
+We use the `test_and_set()` method atomically sets the flag to `true` and obtains its previous value, the parameter `std::memory_order::acquire` is used to ensure that compiler would not reorder other reads or writes before the `test_and_set()` operation and the operation is turly visible to other threads.
+
+---
+title: The `spin_mutex`
+---
+
+```cpp {5}
+class spin_mutex {
+public:
+    void lock() noexcept const {
+        while (m_flag.test_and_set(std::memory_order::acquire)) {
+            m_flag.wait(true, std::memory_order::relaxed);
+        }
+    }
+    void unlock() noexcept const {
+        m_flag.clear(std::memory_order::release);
+        m_flag.notify_one();
+    }
+private:
+    alignas(std::hardware_destructive_interference_size) mutable std::atomic_flag m_flag;
+};
+```
+
+If its previous value is `true`, we'll get into this loop. Here use the `wait()` method which blocks the thread until notified and the atomic value changes, and we'll wait until the flag is set to `false`, the first parameter is the privious value, the second parameter `std::memory_order::relaxed` means that there are no synchronization or ordering constraints imposed on other reads or writes, only this operation's atomicity is guaranteed.
+
+---
+title: The `spin_mutex`
+---
+
+```cpp {8-11}
+class spin_mutex {
+public:
+    void lock() noexcept const {
+        while (m_flag.test_and_set(std::memory_order::acquire)) {
+            m_flag.wait(true, std::memory_order::relaxed);
+        }
+    }
+    void unlock() noexcept const {
+        m_flag.clear(std::memory_order::release);
+        m_flag.notify_one();
+    }
+private:
+    alignas(std::hardware_destructive_interference_size) mutable std::atomic_flag m_flag;
+};
+```
+
+For the unlock operation, we use the `clear()` method to set the flag to `false` and notify one thread, the parameter `std::memory_order::release` is used to ensure that compiler would not reorder other reads or writes after the `clear()` operation and the operation is turly visible to other threads.
+
+---
+
+# The `spin_mutex` is unfair
+
+Although we have implemented the spin lock, the spin lock is only suitable for non-ordered scnearios
+
+```mermaid
+sequenceDiagram
+    Thread 1 -->> Operation[A]: acquiring lock
+    Thread 2 -->> Operation[B]: acquiring lock
+    Note over Operation[B]: acquired lock...
+    Operation[B] -->> Thread 2: released lock
+    Note over Operation[A]: acquired lock...
+```
+
+---
+
+# Why the order is important?
+
+Let's think about why the order is required
+
+Consider the a scenario that you're using this mutex to protect a queue which sensitive to the order of the elements in the queue.
+
+```cpp
+{  // Thread 1
+    std::lock_guard lk(spin_mutex);
+    frame_queue.push(image[1]);  // Operation 1
+}
+{  // Thread 2
+    std::lock_guard lk(spin_mutex);
+    frame_queue.push(image[2]);  // Operation 2
+}
+```
+
+If you're pushing the images to a frame queue to represent a video stream, due to some reasons (the threads may atomaticly attach to a processor by system, each processor may have different speed), Operation 1 happens before Operation 2, but Thread 1 acquires the lock longer than Thread 2 that lead to Operation 2 finished before Operation 1, which leads to the video stream is not in the correct order.
+
+---
+
+# The `ticket_mutex`
+
+The ticket mutex preserves the order of operations
+
+```cpp
+class ticket_mutex {
+public:
+    void lock() noexcept const {
+        auto const ticket { m_out.fetch_add(1, std::memory_order::acquire) };
+        while (true) {
+            auto const now { m_rec.load(std::memory_order::acquire) };
+            if (now == ticket) { return; }
+            m_rec.wait(now, std::memory_order::relaxed);
+        }
+    }
+    void unlock() noexcept const {
+        m_rec.fetch_add(1, std::memory_order::release);
+        m_rec.notify_all();
+    }
+private:
+    alignas(std::hardware_destructive_interference_size) mutable std::atomic<std::size_t> m_out;
+    alignas(std::hardware_destructive_interference_size) mutable std::atomic<std::size_t> m_rec;
+};
+```
+
+---
+title: The `ticket_mutex`
+---
+
+```cpp {16-17}
+class ticket_mutex {
+public:
+    void lock() noexcept const {
+        auto const ticket { m_out.fetch_add(1, std::memory_order::acquire) };
+        while (true) {
+            auto const now { m_rec.load(std::memory_order::acquire) };
+            if (now == ticket) { return; }
+            m_rec.wait(now, std::memory_order::relaxed);
+        }
+    }
+    void unlock() noexcept const {
+        m_rec.fetch_add(1, std::memory_order::release);
+        m_rec.notify_all();
+    }
+private:
+    alignas(std::hardware_destructive_interference_size) mutable std::atomic<std::size_t> m_out;
+    alignas(std::hardware_destructive_interference_size) mutable std::atomic<std::size_t> m_rec;
+};
+```
+
+Here we declare two atomic variables `m_out` and `m_rec` in two different cache lines, the `m_out` is used to store the ticket number the customer recieve, `m_rec` is used to store the ticket number the customer return.
+
+---
+title: The `ticket_mutex`
+---
+
+```cpp {3-4,10}
+class ticket_mutex {
+public:
+    void lock() noexcept const {
+        auto const ticket { m_out.fetch_add(1, std::memory_order::acquire) };
+        while (true) {
+            auto const now { m_rec.load(std::memory_order::acquire) };
+            if (now == ticket) { return; }
+            m_rec.wait(now, std::memory_order::relaxed);
+        }
+    }
+    void unlock() noexcept const {
+        m_rec.fetch_add(1, std::memory_order::release);
+        m_rec.notify_all();
+    }
+private:
+    alignas(std::hardware_destructive_interference_size) mutable std::atomic<std::size_t> m_out;
+    alignas(std::hardware_destructive_interference_size) mutable std::atomic<std::size_t> m_rec;
+};
+```
+
+Once `lock()` operation is acquired, we do a increment to `m_out`.
+
+---
+title: The `ticket_mutex`
+---
+
+```cpp {5-7,9}
+class ticket_mutex {
+public:
+    void lock() noexcept const {
+        auto const ticket { m_out.fetch_add(1, std::memory_order::acquire) };
+        while (true) {
+            auto const now { m_rec.load(std::memory_order::acquire) };
+            if (now == ticket) { return; }
+            m_rec.wait(now, std::memory_order::relaxed);
+        }
+    }
+    void unlock() noexcept const {
+        m_rec.fetch_add(1, std::memory_order::release);
+        m_rec.notify_all();
+    }
+private:
+    alignas(std::hardware_destructive_interference_size) mutable std::atomic<std::size_t> m_out;
+    alignas(std::hardware_destructive_interference_size) mutable std::atomic<std::size_t> m_rec;
+};
+```
+
+If the current `m_rec` equals previous `m_out`, we return immediately.
+
+---
+title: The `ticket_mutex`
+---
+
+```cpp {8}
+class ticket_mutex {
+public:
+    void lock() noexcept const {
+        auto const ticket { m_out.fetch_add(1, std::memory_order::acquire) };
+        while (true) {
+            auto const now { m_rec.load(std::memory_order::acquire) };
+            if (now == ticket) { return; }
+            m_rec.wait(now, std::memory_order::relaxed);
+        }
+    }
+    void unlock() noexcept const {
+        m_rec.fetch_add(1, std::memory_order::release);
+        m_rec.notify_all();
+    }
+private:
+    alignas(std::hardware_destructive_interference_size) mutable std::atomic<std::size_t> m_out;
+    alignas(std::hardware_destructive_interference_size) mutable std::atomic<std::size_t> m_rec;
+};
+```
+
+If the current `m_rec` not equals previous `m_out`, we block the thread and wait for the `m_rec` equals previous `m_out`.
+
+---
+title: The `ticket_mutex`
+---
+
+```cpp {11-14}
+class ticket_mutex {
+public:
+    void lock() noexcept const {
+        auto const ticket { m_out.fetch_add(1, std::memory_order::acquire) };
+        while (true) {
+            auto const now { m_rec.load(std::memory_order::acquire) };
+            if (now == ticket) { return; }
+            m_rec.wait(now, std::memory_order::relaxed);
+        }
+    }
+    void unlock() noexcept const {
+        m_rec.fetch_add(1, std::memory_order::release);
+        m_rec.notify_all();
+    }
+private:
+    alignas(std::hardware_destructive_interference_size) mutable std::atomic<std::size_t> m_out;
+    alignas(std::hardware_destructive_interference_size) mutable std::atomic<std::size_t> m_rec;
+};
+```
+
+Once `unlock()` operation is acquired, we do a increment to `m_rec` as the customer returned the ticket, and notify all the waiting threads.
+
+---
+
+# The conclusion
+
+Let's recall what we have learned in this class
+
+We have learned:
+
+- The concept of asynchronous and multithreaded programming
+- The concept of concurrency and parallelism and write concurrent programs
+- The basic parallel alogrithms and the execution policy
+- The thread synchronization methods and atomic mutexes
+
+We have not talked:
+
+- Instrution level parallelism SIMD
+- Design concurrent data structures
+- Detailed implementation of mentioned alogrithms
+- The future C++ 23 execution model
+
+---
+layout: center
+class: 'text-center pb-5 :'
+---
+
+# Thank You!
