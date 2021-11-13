@@ -27,11 +27,11 @@ Intro to asynchornous and multithreaded programming using C++
 
 Let's known what we're talking about
 
-假设有一个正在运行的程序（Program），它接收实时的输入（Realtime Input），并且对应于每个输入，它产生实时的标准输出（Standard Output）。
+Suppose there is a process, that receiving real time inputs and corresponding to each input it has to produce a certain output.
 
-现在请设想该程序的执行仅在一个线程（Thread）的进程（Process）中完成，这意味着运行中的整个处理是同步（Synchronous）的。因此这个程序每接收一个输入，就需要处理它并产生一个标准输出。
+Now, if the process is not multi-threaded ie if the process does not involve multiple threads, then the whole processing in the process becomes synchronous. This means that the process takes an input processes it and produces an output.
 
-上述设计的局限性在于，在处理完先前的输入之前，进程不能接受另外一个输入，如果处理一个输入的时间超过预期，那么在执行过程中新的输入就可能会被抛弃（Discard）或着是新的输入不能被及时处理。
+The limitation in the above design is that the process cannot accept an input until its done processing the earlier one and in case processing an input takes longer than expected then accepting further inputs goes on hold.
 
 ---
 
@@ -39,13 +39,13 @@ Let's known what we're talking about
 
 Introduction to Linux threads concepts
 
-- 线程（Thread）通常被认为是调度器工作的最小的处理单位。
+- A thread of execution is often regarded as the smallest unit of processing that a scheduler works on.
 
-- 一个进程（Process）可以有多个执行线程，这些线程可以是异步执行的。
+- A process can have multiple threads of execution which are executed asynchronously.
 
-- 创建一个线程或终止一个线程是由操作系统完成的，这需要消耗 CPU 资源。
+- Creating a thread or terminating a thread is done by the operating system, which consumes CPU cycles.
 
-- 在系统中各个线程往往是异步（Asynchronous）执行的，这种异步执行为线程带来了独立处理一个特定工作或服务的能力。因此，在一个进程中运行的多个线程处理它们的事务，总体上构成了进程的完整能力。
+- This asynchronous execution brings in the capability of each thread handling a particular work or service independently. Hence multiple threads running in a process handle their services which overall constitutes the complete capability of the process.
 
 ---
 
@@ -53,11 +53,11 @@ Introduction to Linux threads concepts
 
 Let's understand what is synchronous programming
 
-- 在同步执行模型（Synchronous Model）中，程序被分配任务（Task），并开始执行命令。
+- In synchrony execution model, thread is assigned to one task and starts the execution of its commands.
 
-- 当任务完成后，程序就会接受下一个任务，并做同样的事情：它一个接一个地执行所有的命令，以一个完整的任务。
+- When the task is complete, the thread takes the next task and does the same: it executes all its commands one after another to perform one specified task.
 
-- 在这样的模式中，正在执行命令的程序不能半途而废去接受下一个任务。
+- In such a system, a thread cannot leave a task halfway done and go to the next one.
 
 ---
 
@@ -65,11 +65,11 @@ Let's understand what is synchronous programming
 
 Asynchronous is the opposite of synchronous, reprenting the concurrency execution of multiple tasks
 
-- 在异步执行模型（Asynchronous Model）中，程序的执行是相对主程序（Main Thread）流程独立的。
+- In asynchrony execution model, it refers to the occurrence of events independent of the main program flow.
 
-- 当程序异步执行命令处理任务时，主线程往往有非阻塞的 I/O，这样一个任务就可以与其他任务同时（Simultaneously）执行。
+- When the task is executing, the main thread has non-blocking I/O so that the task can execute simultaneously with other tasks.
 
-- 在这样的模式中，一个程序可以放弃正在处理的任务，转到下一个任务。
+- In such a system, a thread can leave a task halfway done and go to the next one.
 
 ---
 
@@ -77,13 +77,13 @@ Asynchronous is the opposite of synchronous, reprenting the concurrency executio
 
 Concurrency and parallelism are two different things, but they're both based threads
 
-- 并发性（Concurrency）
+- Concerrency
 
-  并发是指在相同的时间段内有多个任务被处理。一个重要的细节是，任务不一定在同一时间执行。这是基于可中断性（Interruptability）的概念，即任务可以被划分为更小的、交替的子任务。在这种情况下，它们可以同时执行，但这并不是必须的。
+  Concurrency is the execution of more than one task is being processed in overlapping time periods. An important detail is that tasks are not necessarily performed at the same time(but it's possible). That is based on the notion of Interruptability — tasks can be divided into smaller and alternating subtasks. In this case, they can be executed simultaneously, but this is not necessary.
 
-- 并行性（Parallelism）
+- Parallelism
 
-  并行性从字面上看就是任务的同时执行。这个名字本身就意味着它们是平行执行的。并行性是实现并发执行的方法之一，突出了线程或进程的抽象性。此外，要想实现并行，必须在物理结构上提供至少两个 CPU 计算资源。
+  Parallelism is literally the simultaneous execution of tasks. The very name implies that they are executed in parallel. Parallelism is one of the ways to implement concurrent execution highlighting abstraction of a thread or process. Also for parallelism to be true, there must be at least two computational resources.
 
 ---
 title: Concurrency and Parallelism
@@ -122,7 +122,7 @@ sequenceDiagram
 
 Let's understand how to write code asynchrony
 
-这里我们声明一个函数来计算一个整数的平方。
+Here we declare a function to calculate the square number of an integer.
 
 ```cpp
 auto slow_sqr(const int value) {
@@ -131,13 +131,13 @@ auto slow_sqr(const int value) {
 }
 ```
 
-一般来说，异步函数比这更复杂，往往是网络请求或文件系统调用，这些场景总是有一个很长的执行时间。为了简单起见，这个例子中的函数只是计算一个有 `500ms` 延迟的平方数。
+Generally, asynchronous functions are more complicated than this, it always called by the network or file system, which always have a long execution time. For the sake of simplicity, the example function is just calculating a square number with a `500ms` delay.
 
 ---
 title: The slow square execution flow
 ---
 
-然后，假设我们有 3 个任务来计算某个整数的平方，并将其输出到控制台（Console），通常你可能会写出这样的代码。
+Then, assuming we have 3 tasks to calculate the square of some integer and print them to the console, normally you may write code like this.
 
 ```cpp
 {
@@ -148,13 +148,13 @@ title: The slow square execution flow
 }
 ```
 
-如你所见，这些任务的执行时间可能超过 `1500ms`，因为它们的执行顺序是按字面意思排列的，执行下一个任务必须等待前一个任务完成。
+As you see, this tasks may take more than `1500ms` to execute, because the execution order of them is literally sequential that the next task must wait the task before to execute.
 
 ---
 title: The asynchronous slow square execution flow
 ---
 
-让我们以异步的方式编写我们的 `slow_sqr`，这样下一个任务就不需要等待之前的任务来执行。
+Let's write our `slow_sqr` in a asynchronous way, thus the next task do not need to wait the task before to execute.
 
 ```cpp
 {
@@ -165,13 +165,13 @@ title: The asynchronous slow square execution flow
 }
 ```
 
-函数 `async_sqr_ftr` 是一个包装函数，它一旦执行就立即返回一个 future 对象并在后台继续执行，这个对象是存放异步函数结果的容器，`get()` 函数用于在 future 对象准备好时获取其结果。
+The `async_sqr_ftr` function is a wrapper function that returns a future object immediately, which is a container for the result of the asynchronous function, and the `get()` function is used to get the result of the future object when it is ready.
 
 ---
 title: The asynchronous slow square
 ---
 
-让我们了解一下 `async_sqr_ftr()` 函数如何工作，参考如下代码：
+Let's learn how our `async_sqr_ftr()` function works, as the following code.
 
 ```cpp
 std::future<int> async_sqr_ftr(const int value) {
@@ -189,7 +189,7 @@ std::future<int> async_sqr_ftr(const int value) {
 title: The asynchronous slow square
 ---
 
-C++ 标准库为我们提供了一种叫做 `std::future` 的类型（Type）。这个 future 包含一个异步操作的结果，它一般与相应的 `std::promise` 相关联。
+The standard library provides us with a way called `std::future`. This future contains an asynchronous operation result, which is generally associated with the corresponding `std::promise`.
 
 
 ```cpp {2,3}
@@ -208,7 +208,7 @@ std::future<int> async_sqr_ftr(const int value) {
 title: The asynchronous slow square
 ---
 
-为了避免调用者被阻塞，我们开了一个新的线程来进行计算。请注意，这里的承诺被转移（Move）到新的线程中，而不是通过直接引用（Reference）来捕获（Capture）。否则，由于 RAII（Resource Acquisition Is Initialization），`pms` 将在执行 `return` 后被销毁。
+In order to avoid the caller got blocked, we open a new thread for the calculation. Note here the promise is moved into the new thread instead of being captured by direct reference, otherwise the `pms` will be destroyed after exectution of `return`, due to RAII (Resource Acquisition Is Initialization).
 
 ```cpp {4,8}
 std::future<int> async_sqr_ftr(const int value) {
@@ -226,7 +226,7 @@ std::future<int> async_sqr_ftr(const int value) {
 title: The asynchronous slow square
 ---
 
-在创建完线程后，我们将线程分离（Detach）出来，该线程将在后台运行，直到里面的任务完成。我们立即返回创建好的 future 对象，以便调用者可以继续做其他任务。
+After the thread is created, we detach the thread that the thread will run in the background unitl the task inside is finished, and we return the future object so that the caller can continue to do other tasks.
 
 ```cpp {7,8}
 std::future<int> async_sqr_ftr(const int value) {
@@ -244,7 +244,7 @@ std::future<int> async_sqr_ftr(const int value) {
 title: The asynchronous slow square
 ---
 
-计算完成后，可以调用 promise 的 `set_value()` 方法（Method）来设置这个返回值，而相应的 `future::get()` 方法可以阻塞（Congest）当前线程，直到相应的 promise 返回该值。
+After the calculation is completed, the `set_value()` method of promise can be called to set this return value, while the corresponding `future::get()` method can block the current thread until the corresponding promise returns the value.
 
 ```cpp {5}
 std::future<int> async_sqr_ftr(const int value) {
@@ -264,7 +264,7 @@ std::future<int> async_sqr_ftr(const int value) {
 
 Asynchronous programming example using `std::async`
 
-实际上，上面的代码是 `std::async` 的一个小部分实现，因此我们可以直接使用后者。
+Actually, the above code is a tiny part implementation of `std::async`, thus we could use that directly.
 
 ```cpp
 {
@@ -275,7 +275,7 @@ Asynchronous programming example using `std::async`
 }
 ```
 
-当调用 `std::async` 时，它将返回一个 `std::future`。然后使用 future 的方法 `get()` 来获取每个任务的结果。`get()` 方法将等待直到它有一个有效的结果，如果任务已经有一个，`get()` 方法将立即返回，否则将等待，直到它有一个。
+When calling `std::async`, it would return a `std::future`. Then use its method `get()` to get the result of each tasks, the method waits until it has a valid result and retrieves it, if the task already have a one, the `get()` method returns immediately, otherwise they wait until it have a one.
 
 ---
 
@@ -297,7 +297,7 @@ async(std::launch policy, Function&& f, Args&&... args);
 title: The launch policy
 ---
 
-让我们了解一下 `std::launch` 策略（Policy），它是 2 个比特掩码值（Bitmask），每个比特控制异步执行的方式（Execution Methods）。
+Let's understand the `std::launch` policy,it has 2 bitmask value, where individual bits control the allowed methods of execution.
 
 
 | Bitmask                   | Description             |
@@ -341,9 +341,9 @@ sequenceDiagram
 
 Here's an example scenario of using lazy evaluation
 
-我们知道，创建分配线程是很昂贵的，惰性求值（Lazy Evaluation）意味着同一线程的延续（Continuation），但执行的是不同的任务，所以如果任务是在相对短的时间段里连续产生的，我们更倾向于使用惰性求值。
+As we know, creating and distorying threads is expensive, lasy evaluation means the continuation of the same thread but different tasks, so if the tasks are meant something continuous, we can use lazy evaluation.
 
-例如，计算 $2^{2*2*2}=2^8$：
+For example, calculating the result of $2^{2*2*2}=2^8$:
 
 ```cpp
 void 🍉 (const int value = 2) {
@@ -359,7 +359,7 @@ void 🍉 (const int value = 2) {
 
 How to use the callback functions instead of `std::async`
 
-对于例子中这个简单的惰性求值场景，我们可以很容易地推断出，所有的计算都可以通过回调函数来完成，事实上并不需要 `std::async` 这种复杂庞大东西。
+For this simple lazy evaluation scenario, we can easily infer that all the calculations could be done by call back functions.
 
 ```cpp
 void 🍉 (const int value = 2) {
@@ -393,7 +393,7 @@ void async_sqr_cbk(const int value, F&& continuation) {
 }
 ```
 
-正如我们之前谈到的，惰性求值意味着同一线程但不同任务的延续，所以如果任务是连续的，我们可以使用回调函数来重构这些任务的执行流程。
+As we talked before, lazy evaluation means the continuation of the same thread but different tasks, so if the tasks are meant something continuous, we can use callback function to reconstruct the execution flow of these tasks.
 
 ---
 title: The implementation of `async_sqr_cbk()`
@@ -409,7 +409,7 @@ void async_sqr_cbk(const int value, F&& continuation) {
 }
 ```
 
-就像我们之前谈到的 `async_sqr_ftr()`，我们创建一个新的线程，然后将其分离，这样调用这个函数就不会阻塞调用线程。
+Like `async_sqr_ftr()` we talked before, we create a new thread and then detach it, so that calling this function will not block the main thread.
 
 ---
 title: The implementation of `async_sqr_cbk()`
@@ -425,7 +425,7 @@ void async_sqr_cbk(const int value, F&& continuation) {
 }
 ```
 
-我们在新的线程中进行计算，计算完成后，我们将结果作为参数传递给一个名为 `c` 的函数，作为它的延续。
+We calculate inside the new thread, after the calculation is done, we pass the result as a parameter to the continuation of a function named `c`.
 
 ---
 
@@ -433,7 +433,7 @@ void async_sqr_cbk(const int value, F&& continuation) {
 
 C++ 20 introduces coroutine that simplifies the use and implementation of asynchronous algorithms
 
-如果我们使用协程（Coroutine），计算 $2^{2*2*2}=2^8$ 结果的代码将更容易阅读和维护。
+If we uses coroutine, the code that calculating the result of $2^{2*2*2}=2^8$ will be more readable and easier to maintain:
 
 ```cpp
 task 🍉 (const int value = 2) {
@@ -444,7 +444,7 @@ task 🍉 (const int value = 2) {
 }
 ```
 
-与普通函数不同，一个并发任务中可以有多个挂起点（Suspend Point）。挂起的任务将控制权传递给调用者，然后调用者可以再次恢复任务（Resume）的执行。被恢复的任务将从最后挂起的位置继续执行，直到下一次挂起，或者整个任务执行结束。
+Unlike a normal function, there can be multiple suspension points in a concurrent tasks. The suspended task passes control to the caller, who can then resume the execution of the task again. The resumed task will continue execution from the last suspended position until the next suspension, or the end of the entire task execution.
 
 ---
 
@@ -468,7 +468,7 @@ struct slow_sqr_coro {
 };
 ```
 
-我们使用一个名为 `slow_sqr_coro` 的结构体以协程的方式来封装我们的任务框架，其成员函数名（Member Functions）称表示协程在不同状态下的执行流程。
+We uses a struct named `slow_sqr_coro` to represent the coroutine, the member fuction names represent the rules of coroutine.
 
 ---
 title: The implementation of `slow_sqr_coro`
@@ -490,7 +490,7 @@ struct slow_sqr_coro {
 };
 ```
 
-首先，我们需要将参数存储在某个地方，最简单直接的方法是在初始化 `slow_sqr_coro` 时将其存储在一个成员变量（Member Variable）中，然后我们可以在进程挂起时将参数传递给回调函数。
+Firstly, we need to store the parameters in somewhere, the easiest and most straightforward way to do this is to store it in a member variable while initializing `slow_sqr_coro`, and then we can pass the parameters to the callback functions when the process hangs.
 
 ---
 title: The implementation of `slow_sqr_coro`
@@ -512,7 +512,7 @@ struct slow_sqr_coro {
 };
 ```
 
-还记得什么是惰性求值吗？在这里，我们总是希望并发进程直接挂起，因为惰性求值的执行流程是意味着继续的东西，我们希望以我们的方式来控制它执行的终点，而不是某次调用函数的尽头，因此这里让 `await_ready()` 直接返回 false。
+Remember what is lazy evaluation? Here we always want the concurrent process to hang directly, because the execution flow is something that meant continuation, so let `await_ready()` return false directly.
 
 ---
 title: The implementation of `slow_sqr_coro`
@@ -534,7 +534,7 @@ struct slow_sqr_coro {
 };
 ```
 
-然后我们在一个回调函数中进行计算，同时挂起协程进程，回调函数 `async_sqr_cbk()` 需要两个参数，第一个参数是要计算的值，第二个参数是延续的函数。
+Then we do the calculation in a callback function while the concurrent process is suspended, the callback function `async_sqr_cbk()` takes two parameters, the first one is the value to be calculated, the second one is the continuation function.
 
 ---
 title: The implementation of `slow_sqr_coro`
@@ -556,7 +556,7 @@ struct slow_sqr_coro {
 };
 ```
 
-当最后一个延续函数被调用时，我们将最终的结果存储在成员变量 `m_result` 中，然后我们恢复正在等待的协程。
+When the last continuation function is called, we store the final result in the member variable `m_result`, and then we resume the awaiting coroutine.
 
 ---
 title: The implementation of `slow_sqr_coro`
@@ -578,7 +578,7 @@ struct slow_sqr_coro {
 };
 ```
 
-当协程进程被恢复时，我们现在可以返回 `m_result` 作为协程的结果。
+When the concurrent process is resumed, we can now return `m_result` as the result of the coroutine.
 
 ---
 
@@ -586,14 +586,14 @@ struct slow_sqr_coro {
 
 Let's learn some parallel algorithms provided by standard library
 
-假设我们有一个整数的数组向量（Vector），我们想计算数组中所有元素的总和。
+Assume we have a vector of integers, and we want to calculate the sum of all the elements in the vector.
 
 ```cpp
 std::vector<int> vec(1e2);
 std::iota(vec.begin(), vec.end(), 1);
 ```
 
-一般来说，你可以像这样简单地计算数组中所有元素的总和：
+Generally, you may simply calculate the sum of all the elements in the vector like this.
 
 ```cpp
 auto sum { 0 };
@@ -606,19 +606,19 @@ for (const auto& v : vec) {
 auto sum = std::accumulate(vec.begin(), vec.end(), int{0});
 ```
 
-考虑到一个特殊的情况，如果数组的长度非常大，像这样在单线程中进行计算是底效率的。
+Consider a special scenario, the vector size is very big, calculating in single thread like this is not efficient.
 
 ---
 title: The `std::reduce()` algorithm
 ---
 
-`std::reduce` 是在 C++ 17 中加入的，看起来非常相似，我们可以用它来做和 `std::accumulate` 类似的事情。
+`std::reduce` was added in C++17 and looks remarkably similar, we can use it do the same thing as `std::accumulate`:
 
 ```cpp
 auto sum = std::reduce(vec.begin(), vec.end(), int{0});
 ```
 
-我们谈论 `std::reduce` 的原因是，它可能是一个比 `std::accumulate` 更高效的算法，参考下面的代码中的比较：
+The reason we talk about `std::reduce` is that it could be a more efficient algorithm than `std::accumulate`, compared in the following code:
 
 ```cpp
 template<class InputIt, class T, class BinaryOperation>
@@ -634,7 +634,7 @@ T reduce(ExecutionPolicy&& policy, ForwardIt first, ForwardIt last, T init, Bina
 
 The execution policy type used as a unique type to disambiguate parallel algorithm overloading
 
-作为参考，这里有 4 种常用的的执行政策类型：
+From reference, here're 4 usual execution policy types:
 
 | Policies                    | Description                             |
 | --------------------------- | --------------------------------------- |
@@ -643,7 +643,7 @@ The execution policy type used as a unique type to disambiguate parallel algorit
 | `std::execution::par_unseq` | unsequential, parallelise and vectorise |
 | `std::execution::unseq`     | unsequential, not parallelise           |
 
-*Vectorise（矢量化）：要求操作可以交错进行*
+*vectorise: requires that the operation can be interleaved*
 
 ---
 title: The `ExecutionPolicy`
@@ -684,15 +684,15 @@ sequenceDiagram
 
 Let's learn some parallel algorithms provided by standard library
 
-现在我们可以使用 `std::reduce` 来得到我们的最终版本的求和算法:
+We can now have our final version sum using `std::reduce`:
 
 ```cpp
 auto sum = std::reduce(std::execution::par_unseq, vec.begin(), vec.end(), int{0});
 ```
 
-虽然 C++ 标准库提供了很多并行算法，但并不是所有的算法都适合我们的使用情况，所以要谨慎使用。
+Although the stand library provides many parallel algorithms, not all of them are suitable for our use case, so use them carefully.
 
-*注意：目前 `std::execution` 需要 Intel TBB 库*
+*Note: Currently the `std::execution` requires Intel TBB library*
 
 ---
 
@@ -721,7 +721,7 @@ private:
 }
 ```
 
-设想当我们运行上述代码时会发生什么？
+Consider what happens when we run the above code.
 
 ---
 title: Thread synchronization
@@ -748,7 +748,7 @@ private:
 }
 ```
 
-我们创建了一个 `Counter` 抽象类和计数器对象 `counter`，该类有两个方法：`get()` 和 `increment()`。
+We created a `Counter` abstraction class and counter object, the class has two methods: `get()` and `increment()`.
 
 ---
 title: Thread synchronization
@@ -775,7 +775,7 @@ private:
 }
 ```
 
-然后创建两个线程，每个线程都在循环运行，每个线程调用 `increment()` 方法增加计数器各 $1*10^6$ 次。
+Then two threads are created, and each thread is running in a loop, each calling `increment()` method for $1*10^6$ times.
 
 ---
 title: Thread synchronization
@@ -802,7 +802,7 @@ private:
 }
 ```
 
-最后我们等待两个线程执行完毕，输出计数器的最终值。
+Last we print the counter after two threads are joined.
 
 ---
 title: The problem
@@ -820,7 +820,7 @@ title: The problem
 }
 ```
 
-该程序会输出什么？
+What will the program print?
 
 - `counter -> N`, N < $2*1*10^6$
 
@@ -832,9 +832,9 @@ title: The problem
 
 Thread safety is not guaranteed
 
-线程安全没有得到保证，因为自增式计数器的方法不是原子的（Atomic），这意味着多个线程同时对计数器的自增方法调用可能同时发生。
+The thread safety is not guaranteed because the self-incrementing counter is not atomic, which means that the counter's incremention by multiple threads could be happen at the same time.
 
-原子化意味着在执行一个方法的指令时，所有的指令操作不能被中断。由于自增量操作在编译后可能有很多指令，如果中断发生，并且 `m_value` 被其他线程改变而当前线程又没有感知到这些变化，这将导致程序不能按照我们的预期结果执行。
+Atomic increment means that all the instruction operations cannot be interrupted, because the self-incrementing operation may have many instructions after compile. If the interruption happens and the `m_value` changed by other threads, this will cause error.
 
 ```asm
 Counter::increment():
@@ -857,7 +857,7 @@ Counter::increment():
 
 The basic thread synchronization method `std::mutex`
 
-Mutex 类是最基本的线程同步方式，可以用来保护共享数据不被多个线程同时访问。
+The mutex class is a synchronization primitive that can be used to protect shared data from being simultaneously accessed by multiple threads.
 
 | Method                 | Description                                                  |
 | ---------------------- | ------------------------------------------------------------ |
