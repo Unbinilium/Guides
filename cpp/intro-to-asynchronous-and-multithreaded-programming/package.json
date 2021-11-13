@@ -6,10 +6,12 @@
     "export": "slidev export"
   },
   "dependencies": {
-    "@slidev/cli": "^0.25.5",
+    "@slidev/cli": "latest",
     "@slidev/theme-default": "*",
-    "@slidev/theme-seriph": "*",
-    "playwright-chromium": "^1.15.2"
+    "@slidev/theme-seriph": "*"
   },
-  "name": "intro-to-asynchronous-and-multithreaded-programming"
+  "name": "intro-to-asynchronous-and-multithreaded-programming",
+  "devDependencies": {
+    "playwright-chromium": "latest"
+  }
 }
