@@ -886,9 +886,9 @@ private:
 };
 ```
 
-We defined a mutex `m` to protect the `Counter`, the mutex is locked while doing the non-const operation `increment()` and unlocked after the operation is done.
+我们定义了一个 `m_mutex` 来保护 `increment()，这个 mutex 在进行非常量（Non-const Operation）操作 `increment()` 时被锁定，操作完成后被解锁。
 
-But there's still a problem, through the `get()` method is const, but we're not supposed to get the value while the `m_value` is incrementing, if we also have a lock here, how to unlock the mutex after `return`?
+但是还有一个问题，通过 `get()` 方法虽然是常量操作（Const Operation），但是要保证 Counter 的原子特性，也就是说如果 `increment()` 发生在 `get()` 之前，那么 `get()` 得到的数据一定是 `increment()` 后的结果。但是如果我们在这里也有一个锁，如何在 `return` 之后解锁这个 mutex？
 
 ---
 title: The `std::lock_guard`
@@ -912,7 +912,7 @@ private:
 };
 ```
 
-Or we can simply use the `std::lock_guard` which is a RAII class that locks the mutex for the duration of the guard's lifetime.
+我们可以通过使用 `std::lock_guard` 来解决之前的问题，它是一个 RAII 类，在 guard 的生命周期内 mutex 将处于锁定状态。
 
 ---
 title: The `std::shared_mutex`
@@ -936,9 +936,9 @@ private:
 };
 ```
 
-Consider that the const `get()` method is really need to be always atomic? Obviously not, it only needs to be atomic when the `m_value` is incrementing, so we can use `std::shared_mutex` as a more efficient way to synchronize.
+请想想常量操作 `get()` 方法是否真的需要一直是原子的？显然不是，它只需要在 `m_value` 递增时是原子的，而多个 `get()` 操作可以同时发生，所以我们可以使用 `std::shared_mutex` 作为一种更高效的同步方式。
 
-With a `std::shared_lock`, multiple threads can get the counter's value at the same time, similarly `std::unique_lock` can suppose that there is only one thread/writer can increment/write the counter's value at the same time.
+使用 `std::shared_lock`，多个线程可以同时获得计数器的值；相反的 `std::unique_lock` 只允许多个线程中的一个线程对 Counter 进行 `increment()` 或 `get()` 操作。
 
 ---
 
@@ -961,7 +961,7 @@ Here we list some basic thread synchronization methods, not include in the examp
 
 `std::atomic` template defines an atomic type with atomic operations
 
-Say goodbye to synchronization, we can use `std::atomic` to implement the counter:
+告别线程同步（Thread Synchronization），我们可以使用 `std::atomic` 来实现计数器。
 
 ```cpp
 class Counter {
@@ -974,7 +974,7 @@ private:
 };
 ```
 
-For this scenario, we can use `std::atomic` to implement the counter, but it not means all the types is atomic, it only supports a few types and you can check the atomicability of a type by `std::atomic<T>::is_always_lock_free()`.
+对于我们之前的应用场景，我们使用 `std::atomic` 来实现计数器。但这并不意味着所有类型都可以是原子的，它只支持少数类型，你可以通过 `std::atomic<T>::is_always_lock_free()` 来检查一个类型是否可以具备原子性。
 
 ---
 
@@ -999,7 +999,7 @@ private:
 };
 ```
 
-Although `std::atomic` is only atomic, it can be used to implement the spin lock, compared with the `std::mutex`, atomic uses cpu instructions directly instead of OS level call, which is more efficient and super fast.
+虽然 `std::atomic` 只能保证它自己以及一些基础类型的原子性，但它可以用来实现自旋锁（Spin Lock），与 `std::mutex` 相比，atomic 直接使用 CPU 指令，而不是操作系统级别（OS Level）的调用（Call），这样效率更高，速度更快。
 
 ---
 title: The `spin_mutex`
@@ -1022,7 +1022,9 @@ private:
 };
 ```
 
-We declare `m_flag` as a `std::atomic_flag`, it is an atomic boolean type which uses whole single cache line, constructed by `alignas` with minimum offset `std::hardware_destructive_interference_size` to avoid false sharing.
+我们用 `std::atomic_flag` 声明一个 `m_flag`，它是一个原子布尔（Boolean）类型。
+
+为了使它能够独享一条缓存总线（Cache Line），我们使用 `alignas` 构建，使用最小偏移量为 `std::hardware_destructive_interference_size` 来避免虚假共享（False Sharing）。
 
 ---
 title: The `spin_mutex`
@@ -1045,7 +1047,7 @@ private:
 };
 ```
 
-We use the `test_and_set()` method atomically sets the flag to `true` and obtains its previous value, the parameter `std::memory_order::acquire` is used to ensure that compiler would not reorder other reads or writes before the `test_and_set()` operation and the operation is turly visible to other threads.
+我们使用 `test_and_set()` 方法原子化地将标志设置为 `true` 并获得其先前的值，参数 `std::memory_order::acquire` 用于确保编译器不会在 `test_and_set()` 操作之前重新排序其他对 `m_flag` 的读或写操作，并且该操作对其他线程是可见的。
 
 ---
 title: The `spin_mutex`
@@ -1068,7 +1070,9 @@ private:
 };
 ```
 
-If its previous value is `true`, we'll get into this loop. Here use the `wait()` method which blocks the thread until notified and the atomic value changes, and we'll wait until the flag is set to `false`, the first parameter is the privious value, the second parameter `std::memory_order::relaxed` means that there are no synchronization or ordering constraints imposed on other reads or writes, only this operation's atomicity is guaranteed.
+如果它之前的值是 `true`，我们将进入这个循环。这里使用 `wait()` 方法，该方法会阻塞线程，直到得到通知 `m_flag` 的值发生变化（我们会等到 `m_flag` 被设置为 `false`）。
+
+`wait()` 操作的第一个参数是变量变化之前的值，第二个参数 `std::memory_order::relaxed` 意味着不需要对其他读或写施加同步约束，只保证这个操作的原子性即可。
 
 ---
 title: The `spin_mutex`
@@ -1091,7 +1095,7 @@ private:
 };
 ```
 
-For the unlock operation, we use the `clear()` method to set the flag to `false` and notify one thread, the parameter `std::memory_order::release` is used to ensure that compiler would not reorder other reads or writes after the `clear()` operation and the operation is turly visible to other threads.
+对于解锁操作，我们使用 `clear()` 方法将 `m_flag` 设置为 `false` 并通知一个线程，参数 `std::memory_order::release` 用于确保编译器不会在 `clear()` 操作后重新排序其他读或写操作，并且该操作对其他线程是完全可见的。
 
 ---
 
@@ -1114,20 +1118,20 @@ sequenceDiagram
 
 Let's think about why the order is required
 
-Consider the a scenario that you're using this mutex to protect a queue which sensitive to the order of the elements in the queue.
+考虑这样一个场景：你用这个 `spin_mutex` 保护一个对元素顺序敏感的队列。
 
 ```cpp
 {  // Thread 1
     std::lock_guard lk(spin_mutex);
-    frame_queue.push(image[1]);  // Operation 1
+    frame_queue.push(image[1]);  // Operation A
 }
 {  // Thread 2
     std::lock_guard lk(spin_mutex);
-    frame_queue.push(image[2]);  // Operation 2
+    frame_queue.push(image[2]);  // Operation B
 }
 ```
 
-If you're pushing the images to a frame queue to represent a video stream, due to some reasons (the threads may atomaticly attach to a processor by system, each processor may have different speed), Operation 1 happens before Operation 2, but Thread 1 acquires the lock longer than Thread 2 that lead to Operation 2 finished before Operation 1, which leads to the video stream is not in the correct order.
+如果你把图像推送到一个帧队列来表示一个视频流，由于一些原因（线程可能自动附加到一个系统的处理器核心上，每个处理器核心可能有不同的速度），操作 A 发生在操作 B 之前，但线程 1 请求（Acquire）锁的时间比线程 2 长，导致操作 B 在操作 A 之前完成，这导致了视频流的顺序不正确。
 
 ---
 
@@ -1181,7 +1185,7 @@ private:
 };
 ```
 
-Here we declare two atomic variables `m_out` and `m_rec` in two different cache lines, the `m_out` is used to store the ticket number the customer recieve, `m_rec` is used to store the ticket number the customer return.
+这里我们在两个不同的缓总线上声明了两个原子变量 `m_out` 和 `m_rec`，`m_out` 用于存储客户收到的票号，`m_rec` 用于存储客户退回的票号。
 
 ---
 title: The `ticket_mutex`
@@ -1208,7 +1212,7 @@ private:
 };
 ```
 
-Once `lock()` operation is acquired, we do a increment to `m_out`.
+一旦请求 `lock()` 操作，我们就对 `m_out` 做进行自增，并将自增前的值储存在 `ticket` 中。
 
 ---
 title: The `ticket_mutex`
@@ -1235,7 +1239,7 @@ private:
 };
 ```
 
-If the current `m_rec` equals previous `m_out`, we return immediately.
+如果当前的 `m_rec` 的值等于 `m_out` 自增前的值 `ticket`，我们立即返回，避免阻塞调用者线程。
 
 ---
 title: The `ticket_mutex`
@@ -1262,7 +1266,7 @@ private:
 };
 ```
 
-If the current `m_rec` not equals previous `m_out`, we block the thread and wait for the `m_rec` equals previous `m_out`.
+如果当前的 `m_rec` 的值不等于 `m_out` 自增前的值 `ticket`，我们就阻塞线程，等待 `m_rec` 的值等于某次自增前 `m_out` 的值。
 
 ---
 title: The `ticket_mutex`
@@ -1289,7 +1293,7 @@ private:
 };
 ```
 
-Once `unlock()` operation is acquired, we do a increment to `m_rec` as the customer returned the ticket, and notify all the waiting threads.
+对于解锁，一旦请求 `unlock()` 操作，我们对 `m_rec` 进行自增（视为客户退回了票据），并通知所有因为 `lock()` 操作阻塞并在等待中线程。
 
 ---
 
@@ -1297,19 +1301,19 @@ Once `unlock()` operation is acquired, we do a increment to `m_rec` as the custo
 
 Let's recall what we have learned in this class
 
-We have learned:
+我们已经了解了：
 
-- The concept of asynchronous and multithreaded programming
-- The concept of concurrency and parallelism and write concurrent programs
-- The basic parallel alogrithms and the execution policy
-- The thread synchronization methods and atomic mutexes
+- 异步和多线程编程的概念
+- 并发和并行的概念以及编写并发程序
+- 基本的并行算法和执行策略
+- 线程同步方法和常用的原子锁
 
-We have not talked:
+我们还没有谈到：
 
-- Instrution level parallelism SIMD
-- Design concurrent data structures
-- Detailed implementation of mentioned alogrithms
-- The future C++ 23 execution model
+- 指令级并行 SIMD（Single Instruction, Multiple Data）
+- 设计并发的数据结构
+- 上述算法的详细实现
+- 未来的 C++ 23 执行模型（Execution Model）
 
 ---
 layout: center
