@@ -2,14 +2,14 @@
   "private": true,
   "scripts": {
     "build": "slidev build",
-    "dev": "slidev --open",
+    "dev": "slidev --open --remote",
     "export": "slidev export"
   },
   "dependencies": {
-    "@slidev/cli": "^0.25.5",
+    "@slidev/cli": "latest",
     "@slidev/theme-default": "*",
     "@slidev/theme-seriph": "*",
-    "playwright-chromium": "^1.15.2"
+    "playwright-chromium": "latest"
   },
   "name": "intro-to-asynchronous-and-multithreaded-programming"
 }
