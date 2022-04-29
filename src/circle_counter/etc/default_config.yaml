@@ -1,0 +1,12 @@
+%YAML:1.0
+---
+hough_max_radis: 11
+hough_min_radis: 9
+hough_p2_d: 8.
+hough_p1_d: 120.
+hough_min_dist_d: 2.9399999999999999e+01
+gaussian_sigma_y_d: 2.
+gaussian_sigma_x_d: 2.
+hough_dp_d: 1.
+gaussian_kernel_h_o: 21
+gaussian_kernel_w_o: 13
