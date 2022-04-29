@@ -44,7 +44,7 @@ namespace cc {
                             std::visit([&](auto&& arg) {
                                 using T = std::decay_t<decltype(arg)>;
                                 if constexpr (std::is_same_v<T, int>) value = static_cast<int>(arg);
-                                else value = static_cast<int>(arg * 10);
+                                else                                  value = static_cast<int>(arg * 10);
                             }, v.second);
                             return value;
                         }(),
@@ -57,57 +57,39 @@ namespace cc {
                 auto& ref_config{_config_adapter["gaussian_kernel_w_o"]};
                 ref_config._config_type = types::type_odd;
                 cv::createTrackbar("Bulr Kernel Width", "Console", &ref_config._pos, 100, trackbar_callback, &ref_config);
-            }
-
-            {
+            } {
                 auto& ref_config{_config_adapter["gaussian_kernel_h_o"]};
                 ref_config._config_type = types::type_odd;
                 cv::createTrackbar("Bulr Kernel Height", "Console", &ref_config._pos, 100, trackbar_callback, &ref_config);
-            }
-
-            {
+            } {
                 auto& ref_config{_config_adapter["gaussian_sigma_x_d"]};
                 ref_config._config_type = types::type_double;
                 cv::createTrackbar("Bulr Sigma X", "Console", &ref_config._pos, 200, trackbar_callback, &ref_config);
-            }
-
-            {
+            } {
                 auto& ref_config{_config_adapter["gaussian_sigma_y_d"]};
                 ref_config._config_type = types::type_double;
                 cv::createTrackbar("Bulr Sigma Y", "Console", &ref_config._pos, 200, trackbar_callback, &ref_config);
-            }
-
-            {
+            } {
                 auto& ref_config{_config_adapter["hough_dp_d"]};
                 ref_config._config_type = types::type_double;
                 cv::createTrackbar("Hough Circle DP", "Console", &ref_config._pos, 100, trackbar_callback, &ref_config);
-            }
-
-            {
+            } {
                 auto& ref_config{_config_adapter["hough_min_dist_d"]};
                 ref_config._config_type = types::type_double;
                 cv::createTrackbar("Minimal Circle Distance", "Console", &ref_config._pos, 500, trackbar_callback, &ref_config);
-            }
-
-            {
+            } {
                 auto& ref_config{_config_adapter["hough_p1_d"]};
                 ref_config._config_type = types::type_double;
                 cv::createTrackbar("Hough Circle Parm1", "Console", &ref_config._pos, 5000, trackbar_callback, &ref_config);
-            }
-
-            {
+            } {
                 auto& ref_config{_config_adapter["hough_p2_d"]};
                 ref_config._config_type = types::type_double;
                 cv::createTrackbar("Hough Circle Parm2", "Console", &ref_config._pos, 500, trackbar_callback, &ref_config);
-            }
-
-            {
+            } {
                 auto& ref_config{_config_adapter["hough_min_radis"]};
                 ref_config._config_type = types::type_int;
                 cv::createTrackbar("Minimal Circle Radius", "Console", &ref_config._pos, 100, trackbar_callback, &ref_config);
-            }
-
-            {
+            } {
                 auto& ref_config{_config_adapter["hough_max_radis"]};
                 ref_config._config_type = types::type_int;
                 cv::createTrackbar("Maximal Circle Radius", "Console", &ref_config._pos, 100, trackbar_callback, &ref_config);
@@ -124,7 +106,6 @@ namespace cc {
 
         static void trackbar_callback(const int pos, void* container) {
             auto trackbar{static_cast<types::callback_container::trackbar*>(container)};
-
             std::lock_guard(trackbar->_p_config_handler->get_mutex());
             switch (trackbar->_config_type) {
             case types::type_int:
@@ -142,7 +123,6 @@ namespace cc {
                 );
                 break;
             }
-
             trackbar->_p_is_updated->store(false);
         }
     };

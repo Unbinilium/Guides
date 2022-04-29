@@ -1,10 +1,11 @@
 #pragma once
 
-#include <vector>
 #include <atomic>
+#include <vector>
+
+#include <opencv2/core/types.hpp>
 
 #include <opencv2/highgui.hpp>
-#include <opencv2/core/types.hpp>
 
 namespace cc {
     namespace types::callback_container {

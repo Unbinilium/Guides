@@ -1,17 +1,18 @@
 #pragma once
 
-#include <vector>
 #include <atomic>
 #include <string>
+#include <vector>
 #include <variant>
 #include <valarray>
+
+#include <opencv2/core/mat.hpp>
+#include <opencv2/core/types.hpp>
+#include <opencv2/core/fast_math.hpp>
 
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
-#include <opencv2/core/mat.hpp>
-#include <opencv2/core/types.hpp>
-#include <opencv2/core/fast_math.hpp>
 
 #include "config_handler.hpp"
 #include "console_base.hpp"
@@ -23,11 +24,10 @@ namespace cc {
         CircleCounter(
             const std::string img_path, cc::ConfigHandler* config_handler
         ) : _img_path(img_path), _p_config_handler(config_handler), _is_updated(false) {
-            __p_img            = &_img;
-            __p_config_handler = _p_config_handler;
-            __p_is_updated     = &_is_updated;
-
-            _mouse_container   = types::callback_container::mouse{
+            __p_img               = &_img;
+            __p_config_handler    = _p_config_handler;
+            __p_is_updated        = &_is_updated;
+            _mouse_container      = types::callback_container::mouse{
                 ._p_edited_points = &_edited_points,
                 ._p_is_updated    = &_is_updated
             };
@@ -50,10 +50,7 @@ namespace cc {
             cv::GaussianBlur(
                 _gray,
                 _blur,
-                cv::Size(
-                    std::get<int>(config.at("gaussian_kernel_w_o")),
-                    std::get<int>(config.at("gaussian_kernel_h_o"))
-                ),
+                cv::Size(std::get<int>(config.at("gaussian_kernel_w_o")), std::get<int>(config.at("gaussian_kernel_h_o"))),
                 std::get<double>(config.at("gaussian_sigma_x_d")),
                 std::get<double>(config.at("gaussian_sigma_y_d"))
             );
@@ -76,19 +73,17 @@ namespace cc {
             _frame = _img.clone();
             const auto avg_radius{(std::get<int>(_p_config_handler->link().at("hough_min_radis")) + std::get<int>(_p_config_handler->link().at("hough_max_radis"))) / 2};
             for (const auto& point : _edited_points) {
-                auto it{std::remove_if(
-                    _circles.begin(), _circles.end(),
+                auto it{std::remove_if(_circles.begin(), _circles.end(),
                     [&](const auto& circle) {
                         return std::pow(point.x - circle[0], 2) + std::pow(point.y - circle[1], 2) <= std::pow(circle[2], 2);
                     }
                 )};
                 if (it != _circles.end()) _circles.erase(it, _circles.end());
-                else _circles.push_back(cv::Vec3i(point.x, point.y, avg_radius));
+                else                      _circles.push_back(cv::Vec3i(point.x, point.y, avg_radius));
             }
             for (const auto& c : _circles) {
                 const auto center{cv::Point2i(::cvRound(c[0]), ::cvRound(c[1]))};
                 const auto radius{::cvRound(c[2])};
-
                 cv::circle(_frame, center, 2,      cv::Scalar(0, 0, 255), -1);
                 cv::circle(_frame, center, radius, cv::Scalar(0, 255, 0),  1);
             }
