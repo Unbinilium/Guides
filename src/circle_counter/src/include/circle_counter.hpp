@@ -81,27 +81,29 @@ namespace cc {
                 if (it != _circles.end()) _circles.erase(it, _circles.end());
                 else                      _circles.push_back(cv::Vec3i(point.x, point.y, avg_radius));
             }
+            {
+                using namespace std::string_literals;
+                cv::putText(
+                    _frame,
+                    "Circle Count: "s + std::to_string(_circles.size()),
+                    cv::Point(30, 80),
+                    cv::FONT_HERSHEY_SIMPLEX,
+                    2.0,
+                    cv::Scalar(255, 255, 255),
+                    3
+                );
+            }
             for (const auto& c : _circles) {
                 const auto center{cv::Point2i(::cvRound(c[0]), ::cvRound(c[1]))};
                 const auto radius{::cvRound(c[2])};
                 cv::circle(_frame, center, 2,      cv::Scalar(0, 0, 255), -1);
                 cv::circle(_frame, center, radius, cv::Scalar(0, 255, 0),  1);
             }
-            using namespace std::string_literals;
-            cv::putText(
-                _frame,
-                "Circle Count: "s + std::to_string(_circles.size()),
-                cv::Point(30, 80),
-                cv::FONT_HERSHEY_SIMPLEX,
-                2.0,
-                cv::Scalar(255, 255, 255),
-                3.0
-            );
             _is_updated.store(false);
         }
 
         void display() {
-            cv::namedWindow("Circle Counter", cv::WINDOW_AUTOSIZE);
+            cv::namedWindow("Circle Counter", cv::WINDOW_NORMAL);
             cv::imshow("Circle Counter", _frame);
         }
 
@@ -109,6 +111,8 @@ namespace cc {
             cv::imshow("Circle Counter", _frame);
             _is_updated.store(true);
         }
+
+        void snapshot() { cv::imwrite(_img_path + ".snapshot.png", _frame); }
 
         void restart() {
             _circles.clear();

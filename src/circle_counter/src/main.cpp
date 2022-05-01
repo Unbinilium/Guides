@@ -1,13 +1,11 @@
 #include <iostream>
 
-#include <fmt/format.h>
-
 #include "config_handler.hpp"
 #include "circle_counter.hpp"
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     if (argc < 3) {
-        fmt::print("Usage: {} <Config Path> <Image Path>\n", argv[0]);
+        std::cout << "Usage: " << argv[0] << " <Config Path> <Image Path>\n";
         return 1;
     }
 
@@ -29,8 +27,16 @@ int main(int argc, char *argv[]) {
         }
 
         const auto user_input{cv::waitKey(30)};
-        if (user_input == 'r') circle_counter.restart();
-        if (user_input == 27) break;
+        switch (user_input) {
+        case 27:
+            return 0;
+        case 'r':
+            circle_counter.restart();
+            break;
+        case 's':
+            circle_counter.snapshot();
+            break;
+        }
     }
 
     return 0;

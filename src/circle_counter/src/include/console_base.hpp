@@ -13,10 +13,12 @@
 
 namespace cc {
     namespace types {
-        constexpr uint8_t type_int    = 0;
-        constexpr uint8_t type_float  = 1;
-        constexpr uint8_t type_double = 2;
-        constexpr uint8_t type_odd    = 3;
+        constexpr uint8_t type_int            = 0;
+        constexpr uint8_t type_float          = 1;
+        constexpr uint8_t type_double         = 2;
+        constexpr uint8_t type_odd            = 3;
+        constexpr uint8_t float_2_int_factor  = 10;
+        constexpr uint8_t double_2_int_factor = 10;
 
         namespace callback_container {
             struct trackbar {
@@ -32,8 +34,7 @@ namespace cc {
     class ConsoleBase {
     public:
         void console() {
-            cv::namedWindow("Console", cv::WINDOW_AUTOSIZE);
-
+            cv::namedWindow("Console", cv::WINDOW_GUI_EXPANDED);
             for (const auto& v : __p_config_handler->link())
                 _config_adapter.insert({
                     v.first,
@@ -43,8 +44,9 @@ namespace cc {
                             int value{};
                             std::visit([&](auto&& arg) {
                                 using T = std::decay_t<decltype(arg)>;
-                                if constexpr (std::is_same_v<T, int>) value = static_cast<int>(arg);
-                                else                                  value = static_cast<int>(arg * 10);
+                                if constexpr (std::is_same_v<T, int>)         value = static_cast<int>(arg);
+                                else if constexpr (std::is_same_v<T, float>)  value = static_cast<int>(arg * types::float_2_int_factor);
+                                else if constexpr (std::is_same_v<T, double>) value = static_cast<int>(arg * types::double_2_int_factor);
                             }, v.second);
                             return value;
                         }(),
@@ -76,7 +78,7 @@ namespace cc {
             } {
                 auto& ref_config{_config_adapter["hough_min_dist_d"]};
                 ref_config._config_type = types::type_double;
-                cv::createTrackbar("Minimal Circle Distance", "Console", &ref_config._pos, 500, trackbar_callback, &ref_config);
+                cv::createTrackbar("Minimal Circle Distance", "Console", &ref_config._pos, 1000, trackbar_callback, &ref_config);
             } {
                 auto& ref_config{_config_adapter["hough_p1_d"]};
                 ref_config._config_type = types::type_double;
@@ -106,16 +108,16 @@ namespace cc {
 
         static void trackbar_callback(const int pos, void* container) {
             auto trackbar{static_cast<types::callback_container::trackbar*>(container)};
-            std::lock_guard(trackbar->_p_config_handler->get_mutex());
+            auto lock{std::lock_guard(trackbar->_p_config_handler->get_mutex())};
             switch (trackbar->_config_type) {
             case types::type_int:
                 trackbar->_p_config_handler->link()[trackbar->_config_key] = static_cast<int>(trackbar->_pos);
                 break;
             case types::type_float:
-                trackbar->_p_config_handler->link()[trackbar->_config_key] = static_cast<float>(trackbar->_pos / 10.0);
+                trackbar->_p_config_handler->link()[trackbar->_config_key] = static_cast<float>(trackbar->_pos / static_cast<float>(types::float_2_int_factor));
                 break;
             case types::type_double:
-                trackbar->_p_config_handler->link()[trackbar->_config_key] = static_cast<double>(trackbar->_pos / 10.0);
+                trackbar->_p_config_handler->link()[trackbar->_config_key] = static_cast<double>(trackbar->_pos / static_cast<double>(types::double_2_int_factor));
                 break;
             case types::type_odd:
                 trackbar->_p_config_handler->link()[trackbar->_config_key] = static_cast<int>(
