@@ -3,44 +3,47 @@
 #include <mutex>
 #include <string>
 #include <variant>
+#include <stdexcept>
 #include <unordered_map>
 
 #include <opencv2/core/persistence.hpp>
 
+#include "common_types.hpp"
+
 namespace cc {
     namespace types {
-        using config_object = std::variant<int, float, double>;
-
-        std::unordered_map<std::string, cc::types::config_object> default_config{
-            {"gaussian_kernel_w_o",   int()},
-            {"gaussian_kernel_h_o",   int()},
-            {"gaussian_sigma_x_d", double()},
-            {"gaussian_sigma_y_d", double()},
-            {"hough_dp_d",         double()},
-            {"hough_min_dist_d",   double()},
-            {"hough_p1_d",         double()},
-            {"hough_p2_d",         double()},
-            {"hough_min_radis",       int()},
-            {"hough_max_radis",       int()}
-        };
+        using config_values = std::variant<int, float, double, std::string>;
+        using config_object = std::unordered_map<std::string, config_values>;
     }
 
     class ConfigHandler {
     public:
-        ConfigHandler(
-            const std::string&                                           path,
-            const std::unordered_map<std::string, types::config_object>& config
-        ) : _path(path), _config(config) {}
+        ConfigHandler(const std::string& path) : _path(path) {}
 
-        ~ConfigHandler() { sync(); };
+        ~ConfigHandler() = default;
 
         void load() {
             auto fs{cv::FileStorage(_path.c_str(), cv::FileStorage::READ)};
-            for (const auto& v : _config)
-                std::visit([&](auto&& arg) {
-                    using T = std::decay_t<decltype(arg)>;
-                    _config[v.first] = static_cast<T>(fs[v.first]);
-                }, v.second);
+            if (!fs.isOpened()) throw std::runtime_error("Cannot open config file: " + _path);
+            for (const auto& k : fs.root().keys()) {
+                _config[k]["id"]   = static_cast<std::string>(fs[k]["id"]);
+                _config[k]["type"] = static_cast<int>(fs[k]["type"]);
+                switch (static_cast<int>(fs[k]["type"])) {
+                case types::type_int:
+                case types::type_odd:
+                    _config[k]["value"] = static_cast<int>(fs[k]["value"]);
+                    _config[k]["max"]   = static_cast<int>(fs[k]["max"]);
+                    break;
+                case types::type_float:
+                    _config[k]["value"] = static_cast<float>(fs[k]["value"]);
+                    _config[k]["max"]   = static_cast<float>(fs[k]["max"]);
+                    break;
+                case types::type_double:
+                    _config[k]["value"] = static_cast<double>(fs[k]["value"]);
+                    _config[k]["max"]   = static_cast<double>(fs[k]["max"]);
+                    break;
+                }
+            }
             fs.release();
         }
 
@@ -53,8 +56,13 @@ namespace cc {
             for (const auto& v : _config)
                 std::visit([&](auto&& arg) {
                     using T = std::decay_t<decltype(arg)>;
-                    fs << v.first << std::get<T>(v.second);
-                }, v.second);
+                    fs << v.first << "{" <<
+                        "type"  << std::get<int>        (v.second.at("type"))  <<
+                        "value" << std::get<T>          (v.second.at("value")) <<
+                        "max"   << std::get<T>          (v.second.at("max"))   <<
+                        "id"    << std::get<std::string>(v.second.at("id"))    <<
+                    "}";
+                }, v.second.at("value"));
             fs.release();
         }
 

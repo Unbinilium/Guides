@@ -5,6 +5,7 @@
 #include <vector>
 #include <variant>
 #include <valarray>
+#include <execution>
 
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/types.hpp>
@@ -13,6 +14,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/videoio.hpp>
 
 #include "config_handler.hpp"
 #include "console_base.hpp"
@@ -22,58 +24,65 @@ namespace cc {
     class CircleCounter : public ConsoleBase, public EditorBase {
     public:
         CircleCounter(
-            const std::string img_path, cc::ConfigHandler* config_handler
-        ) : _img_path(img_path), _p_config_handler(config_handler), _is_updated(false) {
-            __p_img               = &_img;
-            __p_config_handler    = _p_config_handler;
-            __p_is_updated        = &_is_updated;
-            _mouse_container      = types::callback_container::mouse{
-                ._p_edited_points = &_edited_points,
-                ._p_is_updated    = &_is_updated
+            const std::string path, cc::ConfigHandler* config_handler
+        ) : _path(path), _p_config_handler(config_handler), _is_cap(path.length() == 1), _is_updated(false) {
+            _trackbar_container    = types::bridge::trackbar{
+                ._p_config_handler = _p_config_handler,
+                ._p_is_updated     = &_is_updated
+            };
+            _mouse_container       = types::bridge::mouse{
+                ._p_edited_points  = &_edited_points,
+                ._p_is_updated     = &_is_updated
             };
         }
 
         ~CircleCounter() = default;
 
         void load() {
-            _img   = cv::imread(_img_path.c_str(), cv::IMREAD_COLOR);
-            _frame = _img.clone();
+            if (_is_cap) {
+                _cap   = cv::VideoCapture(std::stoi(_path));
+                _cap.read(_img);
+                _frame = _img.clone();
+            } else {
+                _img   = cv::imread(_path.c_str(), cv::IMREAD_COLOR);
+                _frame = _img.clone();
+            }
         }
 
-        auto is_updated() { return _is_updated.load(); }
+        auto is_updated() {
+            return _is_cap ? !_cap.read(_img) : _is_updated.load();
+        }
 
         void process() {
             _p_config_handler->get_mutex().lock();
             const auto config{_p_config_handler->link()};
             _p_config_handler->get_mutex().unlock();
             cv::cvtColor(_img, _gray, cv::COLOR_BGR2GRAY);
-            cv::GaussianBlur(
-                _gray,
-                _blur,
-                cv::Size(std::get<int>(config.at("gaussian_kernel_w_o")), std::get<int>(config.at("gaussian_kernel_h_o"))),
-                std::get<double>(config.at("gaussian_sigma_x_d")),
-                std::get<double>(config.at("gaussian_sigma_y_d"))
+            cv::GaussianBlur(_gray, _blur,
+                cv::Size(std::get<int>(config.at("gaussian_kernel_w").at("value")), std::get<int>(config.at("gaussian_kernel_h").at("value"))),
+                std::get<double>(config.at("gaussian_sigma_x").at("value")),
+                std::get<double>(config.at("gaussian_sigma_y").at("value"))
             );
             _circles.clear();
-            cv::HoughCircles(
-                _blur,
-                _circles,
+            cv::HoughCircles(_blur, _circles,
                 cv::HOUGH_GRADIENT,
-                std::get<double>(config.at("hough_dp_d")),
-                std::get<double>(config.at("hough_min_dist_d")),
-                std::get<double>(config.at("hough_p1_d")),
-                std::get<double>(config.at("hough_p2_d")),
-                std::get<int>(config.at("hough_min_radis")),
-                std::get<int>(config.at("hough_max_radis"))
+                std::get<double>(config.at("hough_dp").at("value")),
+                std::get<double>(config.at("hough_min_dist").at("value")),
+                std::get<double>(config.at("hough_p1").at("value")),
+                std::get<double>(config.at("hough_p2").at("value")),
+                std::get<int>   (config.at("hough_min_radis").at("value")),
+                std::get<int>   (config.at("hough_max_radis").at("value"))
             );
             _is_updated.store(false);
         }
 
         void visualize() {
             _frame = _img.clone();
-            const auto avg_radius{(std::get<int>(_p_config_handler->link().at("hough_min_radis")) + std::get<int>(_p_config_handler->link().at("hough_max_radis"))) / 2};
+            const auto avg_radius{(std::get<int>(
+                _p_config_handler->link().at("hough_min_radis").at("value")) + std::get<int>(_p_config_handler->link().at("hough_max_radis").at("value"))
+            ) / 2};
             for (const auto& point : _edited_points) {
-                auto it{std::remove_if(_circles.begin(), _circles.end(),
+                auto it{std::remove_if(std::execution::par, _circles.begin(), _circles.end(),
                     [&](const auto& circle) {
                         return std::pow(point.x - circle[0], 2) + std::pow(point.y - circle[1], 2) <= std::pow(circle[2], 2);
                     }
@@ -83,8 +92,7 @@ namespace cc {
             }
             {
                 using namespace std::string_literals;
-                cv::putText(
-                    _frame,
+                cv::putText(_frame,
                     "Circle Count: "s + std::to_string(_circles.size()),
                     cv::Point(30, 80),
                     cv::FONT_HERSHEY_SIMPLEX,
@@ -103,8 +111,12 @@ namespace cc {
         }
 
         void display() {
-            cv::namedWindow("Circle Counter", cv::WINDOW_NORMAL);
+            cv::namedWindow("Circle Counter", cv::WINDOW_AUTOSIZE);
             cv::imshow("Circle Counter", _frame);
+        }
+
+        bool is_display_open() {
+            return cv::getWindowProperty("Circle Counter", cv::WND_PROP_VISIBLE) != -1;
         }
 
         void update() {
@@ -112,17 +124,13 @@ namespace cc {
             _is_updated.store(true);
         }
 
-        void snapshot() { cv::imwrite(_img_path + ".snapshot.png", _frame); }
-
-        void restart() {
-            _circles.clear();
-            _edited_points.clear();
-            _is_updated.store(false);
-        }
+        void snapshot() { cv::imwrite(_path + ".snapshot.png", _frame); }
 
     private:
-        const std::string        _img_path;
+        const std::string        _path;
         cc::ConfigHandler*       _p_config_handler;
+        cv::VideoCapture         _cap;
+        bool                     _is_cap;
         cv::Mat                  _img;
         cv::Mat                  _gray;
         cv::Mat                  _blur;

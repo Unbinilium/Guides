@@ -8,11 +8,17 @@
 #include <opencv2/highgui.hpp>
 
 namespace cc {
-    namespace types::callback_container {
-        struct mouse {
-            std::vector<cv::Point2i>* _p_edited_points;
-            std::atomic_bool*         _p_is_updated;
-        };
+    namespace types {
+        namespace bridge {
+            struct mouse {
+                std::vector<cv::Point2i>* _p_edited_points;
+                std::atomic_bool*         _p_is_updated;
+            };
+        }
+
+        namespace callback_container {
+            using mouse = types::bridge::mouse;
+        }
     }
 
     class EditorBase {
@@ -21,8 +27,13 @@ namespace cc {
             cv::setMouseCallback("Circle Counter", &mouse_callback, &_mouse_container);
         }
 
+        void clear_editor() {
+            _mouse_container._p_edited_points->clear();
+            _mouse_container._p_is_updated->store(false);
+        }
+
     protected:
-        types::callback_container::mouse _mouse_container;
+        types::bridge::mouse _mouse_container;
 
     private:
         static void mouse_callback(const int event, const int x, const int y, int, void* container) {
