@@ -6,6 +6,7 @@
 #include <variant>
 #include <valarray>
 #include <execution>
+#include <algorithm>
 
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/types.hpp>
