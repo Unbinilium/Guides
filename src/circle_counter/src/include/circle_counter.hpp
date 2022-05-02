@@ -37,7 +37,9 @@ namespace cc {
             };
         }
 
-        ~CircleCounter() = default;
+        ~CircleCounter() {
+            if (_is_cap) _cap.release();
+        };
 
         void load() {
             if (_is_cap) {
@@ -102,22 +104,25 @@ namespace cc {
                     3
                 );
             }
-            for (const auto& c : _circles) {
-                const auto center{cv::Point2i(::cvRound(c[0]), ::cvRound(c[1]))};
-                const auto radius{::cvRound(c[2])};
-                cv::circle(_frame, center, 2,      cv::Scalar(0, 0, 255), -1);
-                cv::circle(_frame, center, radius, cv::Scalar(0, 255, 0),  1);
-            }
+            std::for_each(std::execution::par_unseq, _circles.begin(), _circles.end(),
+                [&](const auto& c) {
+                    const auto center{cv::Point2i(::cvRound(c[0]), ::cvRound(c[1]))};
+                    const auto radius{::cvRound(c[2])};
+                    cv::circle(_frame, center, 2,      cv::Scalar(0, 0, 255), -1);
+                    cv::circle(_frame, center, radius, cv::Scalar(0, 255, 0),  1);
+                }
+            );
             _is_updated.store(false);
         }
 
         void display() {
-            cv::namedWindow("Circle Counter", cv::WINDOW_AUTOSIZE);
+            cv::namedWindow("Circle Counter", cv::WINDOW_NORMAL);
+            cv::resizeWindow("Circle Counter", _frame.size());
             cv::imshow("Circle Counter", _frame);
         }
 
         bool is_display_open() {
-            return cv::getWindowProperty("Circle Counter", cv::WND_PROP_VISIBLE) != -1;
+            return static_cast<int>(cv::getWindowProperty("Circle Counter", cv::WND_PROP_VISIBLE)) != -1;
         }
 
         void update() {

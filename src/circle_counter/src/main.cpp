@@ -6,8 +6,8 @@
 #include "circle_counter.hpp"
 
 int main(int argc, char* argv[]) {
-    if (argc < 3) {
-        std::cout << "Usage: " << argv[0] << " <Config Path> <Image Path/Camera ID>\n"
+    if (argc < 2) {
+        std::cout << "Usage: " << argv[0] << " <Config Path(Optional)> <Image Path/Camera ID>\n"
             << "Keyboard Shortcuts:\n"
             << "    ESC - exit without saving config\n"
             << "    R/r - clear edited marks in editor\n"
@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    cc::ConfigHandler config_handler(argv[1]);
+    cc::ConfigHandler config_handler(argc < 3 ? "etc/config.yaml" : argv[1]);
     try {
         config_handler.load();
     } catch (std::runtime_error& e) {
@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    cc::CircleCounter circle_counter(argv[2], &config_handler);
+    cc::CircleCounter circle_counter(argv[argc - 1], &config_handler);
     circle_counter.load();
     circle_counter.display();
     circle_counter.console();
@@ -38,7 +38,7 @@ int main(int argc, char* argv[]) {
             circle_counter.update();
         }
 
-        const auto user_input{std::tolower(cv::waitKey(30))};
+        const auto user_input{std::tolower(cv::waitKey(10))};
         if      (user_input == 27)  return 0;
         else if (user_input == 'r') circle_counter.clear_editor();
         else if (user_input == 's') circle_counter.snapshot();
