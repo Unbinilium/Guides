@@ -88,12 +88,12 @@ int main(int, char**) {
                         cap.release();
                     }
 
-                    if (cap.isOpened() && show_wechat_qr_window) {
+                    if (cap.isOpened()) {
                         while (!threads_pool.empty()) {
                             threads_pool.front().detach();
                             threads_pool.pop();
                         }
-                        threads_pool.push(std::thread([&]() {
+                        if (show_wechat_qr_window) threads_pool.push(std::thread([&]() {
                             while (cap.isOpened()) {
                                 if (image.empty()) {
                                     std::this_thread::sleep_for(std::chrono::milliseconds(15));
@@ -104,14 +104,7 @@ int main(int, char**) {
                                 wechat_qr_result = wechat_qr_app.get_image();
                             }
                         }));
-                    }
-
-                    if (cap.isOpened() && show_opencv_qr_window) {
-                        while (!threads_pool.empty()) {
-                            threads_pool.front().detach();
-                            threads_pool.pop();
-                        }
-                        threads_pool.push(std::thread([&]() {
+                        if (show_opencv_qr_window) threads_pool.push(std::thread([&]() {
                             while (cap.isOpened()) {
                                 if (image.empty()) {
                                     std::this_thread::sleep_for(std::chrono::milliseconds(15));
