@@ -6,6 +6,7 @@
 #include <string>
 #include <chrono>
 #include <utility>
+#include <iostream>
 
 #include <opencv2/opencv.hpp>
 
@@ -19,8 +20,12 @@ namespace qr_cpp {
         void visualize() {
             if (points_.empty()) return;
             std::unique_lock lock(mutex_);
-            for (const auto& point : points_)
-                cv::circle(image_, point, 5, cv::Scalar(0, 0, 255), -1);
+            for (std::size_t i = 0; i < points_.size(); i += 4) {
+                std::vector<cv::Point2i> contour;
+                for (int j = 0; j != 4; ++j) contour.push_back(cv::Point2i(points_[i + j].x, points_[i + j].y));
+                cv::polylines(image_, {contour}, true, cv::Scalar(0, 255, 0), 2, cv::LINE_8, 0);
+                for (const auto& point : contour) cv::circle(image_, point, 3, cv::Scalar(0, 0, 255), -1);
+            }
         }
 
         auto get_results() {
@@ -54,6 +59,7 @@ namespace qr_cpp {
         cv::Mat image_;
         std::vector<cv::Point2f> points_;
         std::vector<std::string> results_;
+        std::vector<cv::Mat> straight_images_;
         std::chrono::high_resolution_clock::time_point start_;
         std::chrono::high_resolution_clock::time_point end_;
         std::deque<float> times_;
@@ -72,7 +78,7 @@ namespace qr_cpp {
             }
             auto results = std::vector<std::string>();
             time_start();
-            detector_->detectAndDecodeMulti(image_, results, points_);
+            detector_->detectAndDecodeMulti(image_, results, points_, straight_images_);
             time_end();
             std::unique_lock lock(mutex_);
             results_ = results;
