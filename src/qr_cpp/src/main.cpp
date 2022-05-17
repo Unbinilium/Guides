@@ -118,6 +118,14 @@ int main(int, char**) {
                     }
                 }
             }
+            ImGui::SameLine();
+            if (ImGui::Button("STOP")) {
+                if (cap.isOpened()) cap.release();
+                while (!threads_pool.empty()) {
+                    threads_pool.front().detach();
+                    threads_pool.pop();
+                }
+            }
 
             ImGui::Spacing();
             ImGui::Text("Choose which window to show:");
