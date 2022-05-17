@@ -11,7 +11,8 @@
 #include <glad/glad.h>
 #include <glfw/glfw3.h>
 
-#include <opencv2/opencv.hpp>
+#include <opencv2/core/mat.hpp>
+#include <opencv2/videoio.hpp>
 
 #include "qr_cpp.hpp"
 
@@ -58,7 +59,7 @@ int main(int, char**) {
     std::queue<std::thread> threads_pool;
 
     auto opencv_qr_app = qr_cpp::CV_App();
-    auto wechat_qr_app = qr_cpp::Wechat_App();
+    auto wechat_qr_app = qr_cpp::WC_App();
 
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
@@ -89,10 +90,6 @@ int main(int, char**) {
                     }
 
                     if (cap.isOpened()) {
-                        while (!threads_pool.empty()) {
-                            threads_pool.front().detach();
-                            threads_pool.pop();
-                        }
                         if (show_wechat_qr_window) threads_pool.push(std::thread([&]() {
                             while (cap.isOpened()) {
                                 if (image.empty()) {
@@ -102,6 +99,7 @@ int main(int, char**) {
                                 wechat_qr_app.detect(image);
                                 wechat_qr_app.visualize();
                                 wechat_qr_result = wechat_qr_app.get_image();
+                                std::this_thread::yield();
                             }
                         }));
                         if (show_opencv_qr_window) threads_pool.push(std::thread([&]() {
@@ -113,6 +111,7 @@ int main(int, char**) {
                                 opencv_qr_app.detect(image);
                                 opencv_qr_app.visualize();
                                 opencv_qr_result = opencv_qr_app.get_image();
+                                std::this_thread::yield();
                             }
                         }));
                     }
@@ -159,7 +158,7 @@ int main(int, char**) {
                 char overlay[32];
                 sprintf(overlay, "avg %fms", sum / times_vec.size());
                 ImGui::Begin("WeChat QR Code Detection Time");
-                ImGui::PlotLines("Times plot", times_vec.data(), times_vec.size(), 0, overlay, 0.0f, 500.0f, ImVec2(0, 300.0f));
+                ImGui::PlotLines("Times Plot / History 15", times_vec.data(), times_vec.size(), 0, overlay, 0.0f, 500.0f, ImVec2(0, 300.0f));
                 ImGui::Spacing();
                 for (const auto& s : result) ImGui::Text("Result %i: %s", i++, s.c_str());
                 ImGui::End();
@@ -178,17 +177,17 @@ int main(int, char**) {
             ImGui::Image(reinterpret_cast<void*>(static_cast<intptr_t>(texture)), ImVec2(opencv_qr_result.cols, opencv_qr_result.rows));
             ImGui::End();
 
-            auto times = opencv_qr_app.get_times();
+            const auto times = opencv_qr_app.get_times();
             if (!times.empty()) {
-                auto result = opencv_qr_app.get_results();
+                const auto result = opencv_qr_app.get_results();
                 auto i = 0;
-                auto times_vec = std::vector<float>(times.begin(), times.end());
+                const auto times_vec = std::vector<float>(times.begin(), times.end());
                 float sum = 0.0f;
                 for (const auto t : times_vec) sum += t;
-                char overlay[32];
+                static char overlay[32];
                 sprintf(overlay, "avg %fms", sum / times_vec.size());
                 ImGui::Begin("OpenCV QR Code Detection Time");
-                ImGui::PlotLines("Times plot", times_vec.data(), times_vec.size(), 0, overlay, 0.0f, 500.0f, ImVec2(0, 300.0f));
+                ImGui::PlotLines("Times Plot / History 15", times_vec.data(), times_vec.size(), 0, overlay, 0.0f, 500.0f, ImVec2(0, 300.0f));
                 ImGui::Spacing();
                 for (const auto& s : result) ImGui::Text("Result %i: %s", i++, s.c_str());
                 ImGui::End();

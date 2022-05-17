@@ -5,10 +5,12 @@
 #include <deque>
 #include <string>
 #include <chrono>
-#include <utility>
-#include <iostream>
 
-#include <opencv2/opencv.hpp>
+#include <opencv2/core/mat.hpp>
+#include <opencv2/core/types.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/objdetect.hpp>
 
 namespace qr_cpp {
     template <typename T>
@@ -19,12 +21,13 @@ namespace qr_cpp {
 
         void visualize() {
             if (points_.empty()) return;
+            int id = 0;
             std::unique_lock lock(mutex_);
             for (std::size_t i = 0; i < points_.size(); i += 4) {
-                std::vector<cv::Point2i> contour;
-                for (int j = 0; j != 4; ++j) contour.push_back(cv::Point2i(points_[i + j].x, points_[i + j].y));
-                cv::polylines(image_, {contour}, true, cv::Scalar(0, 255, 0), 2, cv::LINE_8, 0);
+                const std::vector<cv::Point> contour(points_.begin() + i, points_.begin() + i + 4);
+                cv::polylines(image_, contour, true, cv::Scalar(0, 255, 0), 2, cv::LINE_8, 0);
                 for (const auto& point : contour) cv::circle(image_, point, 3, cv::Scalar(0, 0, 255), -1);
+                cv::putText(image_, "ID: " + std::to_string(id++), contour[0], cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 0, 0), 1);
             }
         }
 
@@ -57,7 +60,7 @@ namespace qr_cpp {
 
         T* detector_;
         cv::Mat image_;
-        std::vector<cv::Point2f> points_;
+        std::vector<cv::Point> points_;
         std::vector<std::string> results_;
         std::vector<cv::Mat> straight_images_;
         std::chrono::high_resolution_clock::time_point start_;
@@ -76,7 +79,7 @@ namespace qr_cpp {
                 std::unique_lock lock(mutex_);
                 image_ = image.clone();
             }
-            auto results = std::vector<std::string>();
+            static auto results = std::vector<std::string>();
             time_start();
             detector_->detectAndDecodeMulti(image_, results, points_, straight_images_);
             time_end();
@@ -95,7 +98,7 @@ namespace qr_cpp {
                 std::unique_lock lock(mutex_);
                 image_ = image.clone();
             }
-            auto results = std::vector<std::string>();
+            static auto results = std::vector<std::string>();
             time_start();
             results = detector_->detectAndDecode(image_, points_);
             time_end();
