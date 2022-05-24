@@ -11,6 +11,7 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/objdetect.hpp>
+#include <opencv2/wechat_qrcode.hpp>
 
 namespace qr_cpp {
     template <typename T>
@@ -90,7 +91,14 @@ namespace qr_cpp {
 
     class WC_App : public ApplicationBase<cv::wechat_qrcode::WeChatQRCode> {
     public:
-        WC_App() { detector_ = new cv::wechat_qrcode::WeChatQRCode; }
+        WC_App() {
+            detector_ = new cv::wechat_qrcode::WeChatQRCode(
+                DETECTOR_PROTOTXT_PATH,
+                DETECTOR_CAFFE_MODEL_PATH,
+                SUPER_RESOLUTION_PROTOTXT_PATH,
+                SUPER_RESOLUTION_CAFFE_MODEL_PATH
+            );
+        }
         ~WC_App() { delete detector_; }
 
         void detect(const cv::Mat& image) {
@@ -99,9 +107,19 @@ namespace qr_cpp {
                 image_ = image.clone();
             }
             static auto results = std::vector<std::string>();
+            static auto points  = std::vector<cv::Mat>();
             time_start();
-            results = detector_->detectAndDecode(image_, points_);
+            results = detector_->detectAndDecode(image_, points);
             time_end();
+            points_.clear();
+            for (const auto& point : points) {
+                for (std::size_t i = 0; i != 4; ++i)
+                    points_.push_back({
+                        static_cast<int>(point.at<float>(i, 0)),
+                        static_cast<int>(point.at<float>(i, 1))
+                    });
+            }
+
             std::unique_lock lock(mutex_);
             results_ = results;
         }

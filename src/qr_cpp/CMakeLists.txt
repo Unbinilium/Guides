@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_compile_options(-Wall -Wextra -pedantic -Werror -Wshadow)
+#add_compile_options(-Wall -Wextra -pedantic -Werror -Wshadow)
 add_executable(${PROJECT_NAME} src/main.cpp)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/include)
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -61,3 +61,13 @@ if (NOT imgui_POPULATED)
     target_link_libraries(imgui ${OPENGL_LIBRARIES} glfw glad)
 endif ()
 target_link_libraries(${PROJECT_NAME} PUBLIC imgui)
+
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/wechat_qrcode)
+target_link_libraries(${PROJECT_NAME} PUBLIC wechat_qrcode)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/wechat_qrcode/include)
+add_definitions(
+    -DDETECTOR_PROTOTXT_PATH="${CMAKE_BINARY_DIR}/bin/detect.prototxt"
+    -DDETECTOR_CAFFE_MODEL_PATH="${CMAKE_BINARY_DIR}/bin/detect.caffemodel"
+    -DSUPER_RESOLUTION_PROTOTXT_PATH="${CMAKE_BINARY_DIR}/bin/sr.prototxt"
+    -DSUPER_RESOLUTION_CAFFE_MODEL_PATH="${CMAKE_BINARY_DIR}/bin/sr.caffemodel"
+)
